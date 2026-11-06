@@ -46,6 +46,7 @@ A source review is not a substitute for playing the games in a browser. The curr
 
 - Completion callback: the application ignores duplicate completions after the active run has been closed.
 - Rewards: XP, coins, daily quest progress, best scores, per-game statistics and recent history are updated together.
+- Draw accounting: the current shared result model stores a win/loss boolean, so draws in XO, Connect Four, Reversi and Blackjack are currently recorded as non-wins. This is an accuracy issue to resolve in a separate result-model migration.
 - Save compatibility: the new effects-volume setting is normalized and bounded to 0–1; older saves receive the default.
 - Audio: CC0 interface effects are loaded by the browser on demand. Playback failure and autoplay restrictions are handled silently.
 - Accessibility and mobile: keyboard/touch controls still require real-device verification across all games.
