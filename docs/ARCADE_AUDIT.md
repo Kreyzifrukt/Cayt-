@@ -48,7 +48,7 @@ A source review is not a substitute for playing the games in a browser. The curr
 - Rewards: XP, coins, daily quest progress, best scores, per-game statistics and recent history are updated together.
 - Draw accounting: the current shared result model stores a win/loss boolean, so draws in XO, Connect Four, Reversi and Blackjack are currently recorded as non-wins. This is an accuracy issue to resolve in a separate result-model migration.
 - Save compatibility: the new effects-volume setting is normalized and bounded to 0–1; older saves receive the default.
-- Audio: CC0 interface effects and a CC0 menu loop are loaded by the browser on demand. Effects and music have separate saved volume controls; playback failure and autoplay restrictions are handled silently.
+- Audio: Kenney Interface Sounds (CC0 1.0) and qubodup's Two Simple Game Music Loops menu track (CC0 1.0) are loaded by the browser on demand from pinned public commits. Effects and music have separate saved volume controls; playback failure, network failure and autoplay restrictions are handled silently. The browser needs network access for these remote assets.
 - Accessibility and mobile: keyboard/touch controls still require real-device verification across all games.
 
 ## Fixed in this branch
@@ -56,6 +56,7 @@ A source review is not a substitute for playing the games in a browser. The curr
 - Reversi no longer gets stuck when the player must pass; the CPU continues until the player can move or the game ends.
 - Frogger now detects cars moving into a stationary frog.
 - Blackjack natural 21 checks the dealer's natural 21 before awarding a win, and the dealer's second card stays hidden until the hand ends.
+- Tetris now has all seven standard tetrominoes, clockwise rotation, basic wall kicks, and keyboard/touch rotation controls.
 - Breakout's ball can reach every brick column.
 - Simon Says uses separated flashes and clears pending timers on reset/unmount.
 - Whack-a-Mole, Math Sprint, Color Clash and Typing Rush now use wall-clock deadlines; score/text updates no longer restart their round timers.
