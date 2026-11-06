@@ -18,13 +18,38 @@ function Minesweeper({ done }: { done: (s:number,w:boolean)=>void }) {
 }
 const SHAPES=[[1,1,1,1],[1,1,0,0,1,1],[0,1,0,1,1,1],[1,1,1,0,1,0],[1,1,0,1,1,0]];
 function Tetris({ done }: { done:(s:number,w:boolean)=>void }) {
- const [board,setBoard]=useState<number[][]>(()=>Array.from({length:16},()=>Array(10).fill(0)));const [piece,setPiece]=useState({x:3,y:0,shape:0});const [score,setScore]=useState(0);const [over,setOver]=useState(false);
- const cells=SHAPES[piece.shape];const blocks=()=>cells.flatMap((v,i)=>v?[[piece.x+i%4,piece.y+Math.floor(i/4)]]:[]);
- const tick=()=>{const b=blocks();if(b.some(([x,y])=>y+1>=16||board[y+1]?.[x])){const n=board.map(r=>[...r]);b.forEach(([x,y])=>{if(y>=0)n[y][x]=1;});const kept=n.filter(r=>r.some(v=>!v));const cleared=16-kept.length;while(kept.length<16)kept.unshift(Array(10).fill(0));setBoard(kept);setScore(s=>s+cleared*100);if(kept[0].some(Boolean)){setOver(true);done(score+cleared*100,false);}else setPiece({x:3,y:0,shape:Math.floor(Math.random()*SHAPES.length)});}else setPiece(p=>({...p,y:p.y+1}));};
- useEffect(()=>{if(over)return;const t=window.setInterval(tick,650);return()=>window.clearInterval(t);});
- useEffect(()=>{const h=(e:KeyboardEvent)=>{if(e.key==="ArrowLeft")setPiece(p=>({...p,x:Math.max(0,p.x-1)}));if(e.key==="ArrowRight")setPiece(p=>({...p,x:Math.min(6,p.x+1)}));if(e.key==="ArrowDown")tick();};window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);});
- const reset=()=>{setBoard(Array.from({length:16},()=>Array(10).fill(0)));setPiece({x:3,y:0,shape:0});setScore(0);setOver(false);};
- return <Frame title={over?"STACK OVER":"TETRIS · ARROW KEYS"} score={score} reset={reset}><div className="tetris-board">{board.flatMap((r,y)=>r.map((v,x)=><span key={y*10+x} className={v||blocks().some(([bx,by])=>bx===x&&by===y)?"tetris-block":""}/>))}</div><div className="game-action-row"><button className="secondary" onClick={()=>setPiece(p=>({...p,x:Math.max(0,p.x-1)}))}>LEFT</button><button className="secondary" onClick={()=>setPiece(p=>({...p,x:Math.min(6,p.x+1)}))}>RIGHT</button><button className="secondary" onClick={tick}>DROP</button></div>{over&&<div className="result"><b>GAME OVER · {score} POINTS</b><button onClick={reset}>PLAY AGAIN</button></div>}</Frame>;
+  const [board,setBoard]=useState<number[][]>(()=>Array.from({length:16},()=>Array(10).fill(0)));
+  const [piece,setPiece]=useState({x:3,y:0,shape:0});
+  const [score,setScore]=useState(0);
+  const [over,setOver]=useState(false);
+  const cells=SHAPES[piece.shape];
+  const blocks=(x=piece.x,y=piece.y)=>cells.flatMap((v,i)=>v?[[x+i%4,y+Math.floor(i/4)]]:[]);
+  const canPlace=(x:number,y:number)=>blocks(x,y).every(([bx,by])=>bx>=0&&bx<10&&by>=0&&by<16&&!board[by][bx]);
+  const shift=(dx:number)=>{if(over)return;setPiece(p=>{const x=p.x+dx;return blocks(x,p.y).every(([bx,by])=>bx>=0&&bx<10&&by>=0&&by<16&&!board[by][bx])?{...p,x}:p;});};
+  const tick=()=>{
+    if(over)return;
+    const nextY=piece.y+1;
+    if(canPlace(piece.x,nextY)){setPiece(p=>({...p,y:p.y+1}));return;}
+    const locked=board.map(row=>[...row]);
+    blocks().forEach(([x,y])=>{if(y>=0&&y<16&&x>=0&&x<10)locked[y][x]=1;});
+    const kept=locked.filter(row=>row.some(value=>!value));
+    const cleared=16-kept.length;
+    while(kept.length<16)kept.unshift(Array(10).fill(0));
+    const total=score+cleared*100;
+    setBoard(kept);setScore(total);
+    const nextPiece={x:3,y:0,shape:Math.floor(Math.random()*SHAPES.length)};
+    const nextBlocks=SHAPES[nextPiece.shape].flatMap((v,i)=>v?[[nextPiece.x+i%4,nextPiece.y+Math.floor(i/4)]]:[]);
+    if(nextBlocks.some(([x,y])=>kept[y]?.[x])){setOver(true);done(total,false);}
+    else setPiece(nextPiece);
+  };
+  useEffect(()=>{if(over)return;const timer=window.setInterval(tick,650);return()=>window.clearInterval(timer);});
+  useEffect(()=>{const key=(event:KeyboardEvent)=>{if(event.key==="ArrowLeft"||event.key==="a"){event.preventDefault();shift(-1);}else if(event.key==="ArrowRight"||event.key==="d"){event.preventDefault();shift(1);}else if(event.key==="ArrowDown"||event.key==="s"){event.preventDefault();tick();}};window.addEventListener("keydown",key);return()=>window.removeEventListener("keydown",key);});
+  const reset=()=>{setBoard(Array.from({length:16},()=>Array(10).fill(0)));setPiece({x:3,y:0,shape:0});setScore(0);setOver(false);};
+  return <Frame title={over?"STACK OVER":"TETRIS · ARROW KEYS"} score={score} reset={reset}>
+    <div className="tetris-board" aria-label="Tetris playfield">{board.flatMap((row,y)=>row.map((value,x)=><span key={y*10+x} className={value||blocks().some(([bx,by])=>bx===x&&by===y)?"tetris-block":""}/>))}</div>
+    <div className="game-action-row"><button className="secondary" onClick={()=>shift(-1)} disabled={over}>LEFT</button><button className="secondary" onClick={()=>shift(1)} disabled={over}>RIGHT</button><button className="secondary" onClick={tick} disabled={over}>DROP</button></div>
+    {over&&<div className="result"><b>GAME OVER · {score} POINTS</b><button onClick={reset}>PLAY AGAIN</button></div>}
+  </Frame>;
 }
 function Breakout({done}:{done:(s:number,w:boolean)=>void}) {
  const [paddle,setPaddle]=useState(4);const [ball,setBall]=useState({x:4,y:8,dx:1,dy:-1});const [bricks,setBricks]=useState(()=>Array.from({length:30},(_,i)=>i));const [lost,setLost]=useState(false);const [won,setWon]=useState(false);

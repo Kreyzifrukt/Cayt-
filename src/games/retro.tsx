@@ -78,30 +78,39 @@ function flips(board: Disk[], index: number, player: Disk) {
   return found;
 }
 function Reversi({ done }: { done: Done }) {
-  const initial = () => { const b: Disk[] = Array(64).fill(0); b[27]=2; b[28]=1; b[35]=1; b[36]=2; return b; };
-  const [board, setBoard] = useState(initial), [ended, setEnded] = useState(false), [message, setMessage] = useState("YOUR TURN");
-  const finish = (b: Disk[]) => { const mine=b.filter(v=>v===1).length, cpu=b.filter(v=>v===2).length; setBoard(b); setEnded(true); setMessage(mine>cpu?"YOU WIN":mine===cpu?"DRAW":"CPU WINS"); done(mine*10,mine>cpu); };
-  const play = (index: number) => {
-    if (ended) return;
-    const own = flips(board,index,1); if (!own.length) return;
-    const next=[...board]; next[index]=1; own.forEach(i=>next[i]=1);
-    let choices=next.flatMap((v,i)=>v===0&&flips(next,i,2).length?[i]:[]);
-    if (choices.length) {
-      choices.sort((a,b)=>([0,7,56,63].includes(b)?20:0)+flips(next,b,2).length-(([0,7,56,63].includes(a)?20:0)+flips(next,a,2).length));
-      const cpu=choices[0], captured=flips(next,cpu,2); next[cpu]=2; captured.forEach(i=>next[i]=2);
-    }
-    const canPlay=next.some((v,i)=>v===0&&flips(next,i,1).length), cpuCan=next.some((v,i)=>v===0&&flips(next,i,2).length);
-    if (!canPlay&&!cpuCan) finish(next); else { setBoard(next); setMessage(canPlay?"YOUR TURN":"YOU PASS · CPU MOVES"); }
+  const initial=()=>{const board:Disk[]=Array(64).fill(0);board[27]=2;board[28]=1;board[35]=1;board[36]=2;return board;};
+  const [board,setBoard]=useState(initial),[ended,setEnded]=useState(false),[message,setMessage]=useState("YOUR TURN");
+  const finish=(next:Disk[])=>{const mine=next.filter(value=>value===1).length,cpu=next.filter(value=>value===2).length;setBoard(next);setEnded(true);setMessage(mine>cpu?"YOU WIN":mine===cpu?"DRAW":"CPU WINS");done(mine*10,mine>cpu);};
+  const bestMove=(position:Disk[],player:Disk)=>{
+    const options=position.flatMap((value,index)=>value===0&&flips(position,index,player).length?[index]:[]);
+    options.sort((a,b)=>([0,7,56,63].includes(b)?100:0)+flips(position,b,player).length-(([0,7,56,63].includes(a)?100:0)+flips(position,a,player).length));
+    return options[0];
+  };
+  const apply=(position:Disk[],index:number,player:Disk)=>{
+    const next=[...position],captured=flips(position,index,player);
+    next[index]=player;captured.forEach(cell=>next[cell]=player);return next;
+  };
+  const play=(index:number)=>{
+    if(ended)return;
+    const captured=flips(board,index,1);if(!captured.length)return;
+    let next=apply(board,index,1);
+    const playerCanMove=bestMove(next,1)!==undefined;
+    const cpuMove=bestMove(next,2);
+    if(!playerCanMove&&cpuMove===undefined){finish(next);return;}
+    if(cpuMove!==undefined)next=apply(next,cpuMove,2);
+    const canPlay=bestMove(next,1)!==undefined,cpuCan=bestMove(next,2)!==undefined;
+    if(!canPlay&&!cpuCan){finish(next);return;}
+    setBoard(next);
+    setMessage(!canPlay?"YOU PASS · CPU MOVES":!cpuCan?"CPU PASSES · YOUR TURN":"YOUR TURN");
   };
   const reset=()=>{setBoard(initial());setEnded(false);setMessage("YOUR TURN");};
-  return <Panel title="REVERSI · CONTROL THE BOARD" score={board.filter(v=>v===1).length+" : "+board.filter(v=>v===2).length} reset={reset}>
+  return <Panel title="REVERSI · CONTROL THE BOARD" score={board.filter(value=>value===1).length+" : "+board.filter(value=>value===2).length} reset={reset}>
     <p className="retro-note">Trap the CPU's discs in a straight line to flip them. Corners are valuable.</p>
-    <div className="reversi-board">{board.map((v,i)=><button key={i} className="reversi-cell" disabled={ended||!flips(board,i,1).length} onClick={()=>play(i)}><i className={v===1?"mint-disc":v===2?"cpu-disc":""}/></button>)}</div>
+    <div className="reversi-board">{board.map((value,index)=><button key={index} className="reversi-cell" disabled={ended||!flips(board,index,1).length} onClick={()=>play(index)} aria-label={`Row ${Math.floor(index/8)+1}, column ${index%8+1}`}><i className={value===1?"mint-disc":value===2?"cpu-disc":""}/></button>)}</div>
     <div className="retro-status">{message}</div>
     {ended&&<div className="result"><b>{message}</b><button onClick={reset}>REMATCH</button></div>}
   </Panel>;
 }
-
 const CODE = ["#79f0bd","#8db7ff","#c39aff","#ff8da7","#ffd16e","#72dce8"];
 function feedback(secret: number[], guess: number[]) {
   let exact=0; const left=[...secret], extra:number[]=[];

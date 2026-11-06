@@ -71,3 +71,30 @@
 .light-theme .guide-summary,.light-theme .guide-columns p,.light-theme .guide-columns ul{color:#46566b}
 .light-theme .guide-language{color:#68768a}
 @media(max-width:760px){.game-guide{padding:15px}.guide-columns{grid-template-columns:1fr;gap:14px}.guide-language{font-size:7px}.guide-summary{font-size:10px}}
+
+
+/* Mobile-first play controls and touch ergonomics. */
+.mobile-game-controls{display:none;justify-items:center;gap:6px;margin:12px auto 0}
+.mobile-game-controls>div{display:flex;gap:6px}
+.mobile-game-controls button{width:48px;height:42px;border:1px solid #43536a;border-radius:8px;background:#1a2635;color:#dce8f7;font-size:18px;touch-action:manipulation}
+button,.gem,.mine-cell,.tap-cell,.letter-tile{touch-action:manipulation}
+@media(max-width:760px){
+  .mobile-game-controls{display:grid}
+  .playfield{padding:18px 12px;min-height:0}
+  .game-page{padding:22px 16px 32px}
+  .game-title{align-items:flex-start;gap:12px;flex-direction:column}
+  .game-title h1{font-size:clamp(25px,7vw,34px)}
+  .best{align-self:stretch;width:max-content}
+  .game-toolbar{gap:8px;flex-wrap:wrap}
+  .game-live,.game-score{font-size:8px}
+  .collection-footer{gap:8px;flex-wrap:wrap}
+  .retro-pad button{width:48px;height:44px}
+  .mine-cell,.connect-grid .drop-column,.letter-grid button,.number-grid button,.sudoku-grid select{min-height:36px}
+  .game-action-row{flex-wrap:wrap;justify-content:center}
+}
+@media(max-width:420px){
+  .playfield{padding:14px 8px}
+  .engine{width:100%}
+  .game-page{padding-left:12px;padding-right:12px}
+  .mobile-game-controls button{width:52px;height:46px}
+}
