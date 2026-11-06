@@ -78,6 +78,13 @@ A source review is not a substitute for playing the games in a browser. The curr
 - Shared click and result sounds use browser audio playback with a persistent effects-volume preference.
 - XP changes receive a small, restrained animation.
 
+## Dependency security and maintenance
+
+- Updated Vite to 6.4.5, including the patched v6 release for GHSA-8g5g-mxqh-grgj.
+- Updated Vitest to 4.1.12. The previous 2.x line included affected releases for GHSA-8gvc-j273-4wm5, and versions before 4.1.12 were affected by GHSA-qxg6-89mg-rqv8.
+- Added weekly Dependabot checks for npm dependencies and GitHub Actions.
+- A committed npm lockfile is still missing. CI currently resolves compatible versions during npm install, so dependency resolution is not yet fully reproducible. A lockfile must be generated and committed before switching CI to npm ci.
+
 ## Remaining work before audit sign-off
 
 1. Expand targeted unit tests for pure rules and reward edge cases across all games.
