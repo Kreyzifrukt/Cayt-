@@ -60,6 +60,7 @@ npm run dev
 npm run typecheck
 npm test
 npm run build
+npm run test:e2e
 ```
 
 All progress is stored in localStorage under `neon-arcade-save`. Clearing browser site data resets the local profile. Online leaderboards and cloud synchronization are intentionally not represented as available: they require a hosted backend, user accounts and server-side score validation.
