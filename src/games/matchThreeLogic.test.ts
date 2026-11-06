@@ -43,8 +43,6 @@ describe("Gem Match logic", () => {
     expect(result.cascades).toBeGreaterThanOrEqual(1);
     expect(result.board.flat().every((gem) => gem >= 0 && gem < 5)).toBe(true);
   });
-});
-
 
   it("replaces a dead board after a refill leaves no legal swaps", () => {
     const deadBoard = Array.from({ length: 7 }, (_, row) =>
@@ -60,3 +58,4 @@ describe("Gem Match logic", () => {
     expect(findGemMatches(playable).size).toBe(0);
     expect(hasPossibleGemMove(playable)).toBe(true);
   });
+});
