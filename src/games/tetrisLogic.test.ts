@@ -16,10 +16,10 @@ describe("Tetris rules", () => {
     expect(rotated.reduce((sum, cell) => sum + cell, 0)).toBe(4);
     expect(getTetrominoBlocks(0, 0, 0)).toHaveLength(4);
     expect(rotated.filter(Boolean)).toHaveLength(4);
-    expect(rotated[3]).toBe(1);
-    expect(rotated[7]).toBe(1);
-    expect(rotated[11]).toBe(1);
-    expect(rotated[15]).toBe(1);
+    expect(rotated[2]).toBe(1);
+    expect(rotated[6]).toBe(1);
+    expect(rotated[10]).toBe(1);
+    expect(rotated[14]).toBe(1);
   });
 
   it("rejects placements outside the board and on occupied cells", () => {
