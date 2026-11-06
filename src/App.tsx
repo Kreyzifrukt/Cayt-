@@ -11,6 +11,7 @@ import { GameGuide } from "./components/game-guide";
 import { PlayerStats } from "./components/player-stats";
 import { gameCopy } from "./games/gameGuides";
 import { t } from "./i18n";
+import { playArcadeSound } from "./services/audio/audioManager";
 
 function todayKey() {
   const d = new Date();
@@ -35,7 +36,7 @@ export default function App() {
     runStartedAt.current=null;
     awaitingRestart.current=true;
     const session={id,playedAt:new Date(finishedAt).toISOString(),durationSeconds:Math.max(0,Math.round((finishedAt-startedAt)/1000)),score:Math.max(0,score),won};
-    if(save.sound){try{const context=new AudioContext();const oscillator=context.createOscillator();const gain=context.createGain();oscillator.type="sine";oscillator.frequency.value=won?880:260;gain.gain.setValueAtTime(0.035,context.currentTime);gain.gain.exponentialRampToValueAtTime(0.001,context.currentTime+0.18);oscillator.connect(gain);gain.connect(context.destination);oscillator.start();oscillator.stop(context.currentTime+0.18);oscillator.onended=()=>void context.close();}catch{/* Audio is optional and may be unavailable. */}}
+    if(save.sound)playArcadeSound(won?"win":"lose",save.effectsVolume);
     setSave(s=>{
       const fresh=s.dailyDate===todayKey()?s:{...s,dailyDate:todayKey(),dailyRuns:0,dailyClaimed:false};
       const runs=fresh.dailyRuns+1;
@@ -86,7 +87,7 @@ export default function App() {
   };
   const skins=[{id:"mint",name:"NEON MINT",price:0},{id:"violet",name:"VIOLET PULSE",price:100},{id:"ember",name:"EMBER CORE",price:125},{id:"ice",name:"ARCTIC GLOW",price:150}] as const;
 
-  return <div className={["shell",save.theme==="light"?"light-theme":"",save.skin!=="mint"?`skin-${save.skin}`:""].filter(Boolean).join(" ")}>
+  return <div className={["shell",save.theme==="light"?"light-theme":"",save.skin!=="mint"?`skin-${save.skin}`:""].filter(Boolean).join(" ")} onClickCapture={event=>{const target=event.target as HTMLElement;if(save.sound&&!target.closest("input,textarea,select"))playArcadeSound("click",save.effectsVolume*0.35);}}>
     <aside className={`sidebar ${menu?"open":""}`}>
       <button className="brand" onClick={()=>{setActive(null);setStats(false);setSettings(false);}}><span className="brand-icon"><Gamepad2/></span><span>NEON<span className="brand-light">ARCADE</span><small>PLAY BEYOND LIMITS</small></span></button>
       <div className="side-label">{tr("yourSpace")}</div>

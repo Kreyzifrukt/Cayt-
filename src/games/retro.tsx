@@ -92,16 +92,26 @@ function Reversi({ done }: { done: Done }) {
   };
   const play=(index:number)=>{
     if(ended)return;
-    const captured=flips(board,index,1);if(!captured.length)return;
+    const captured=flips(board,index,1);
+    if(!captured.length)return;
     let next=apply(board,index,1);
-    const playerCanMove=bestMove(next,1)!==undefined;
-    const cpuMove=bestMove(next,2);
-    if(!playerCanMove&&cpuMove===undefined){finish(next);return;}
-    if(cpuMove!==undefined)next=apply(next,cpuMove,2);
-    const canPlay=bestMove(next,1)!==undefined,cpuCan=bestMove(next,2)!==undefined;
-    if(!canPlay&&!cpuCan){finish(next);return;}
-    setBoard(next);
-    setMessage(!canPlay?"YOU PASS · CPU MOVES":!cpuCan?"CPU PASSES · YOUR TURN":"YOUR TURN");
+    while(true){
+      const cpuMove=bestMove(next,2);
+      const playerMove=bestMove(next,1);
+      if(cpuMove===undefined&&playerMove===undefined){finish(next);return;}
+      if(cpuMove===undefined){
+        setBoard(next);
+        setMessage("CPU PASSES · YOUR TURN");
+        return;
+      }
+      next=apply(next,cpuMove,2);
+      if(bestMove(next,1)!==undefined){
+        setBoard(next);
+        setMessage("YOUR TURN");
+        return;
+      }
+      // If the player has no legal move, the CPU takes another turn automatically.
+    }
   };
   const reset=()=>{setBoard(initial());setEnded(false);setMessage("YOUR TURN");};
   return <Panel title="REVERSI · CONTROL THE BOARD" score={board.filter(value=>value===1).length+" : "+board.filter(value=>value===2).length} reset={reset}>
@@ -142,7 +152,7 @@ function value(cards:Card[]){let total=cards.reduce((s,c)=>s+(c.rank>10?10:c.ran
 function Blackjack({done}:{done:Done}){
   const [deck,setDeck]=useState<Card[]>([]),[player,setPlayer]=useState<Card[]>([]),[dealer,setDealer]=useState<Card[]>([]),[active,setActive]=useState(false),[status,setStatus]=useState("DEAL TO START"),[ended,setEnded]=useState(false);
   const finish=(hand:Card[],house:Card[],remaining:Card[])=>{const d=[...house],cards=[...remaining];while(value(d)<17&&cards.length)d.push(cards.shift()!);const p=value(hand),h=value(d),won=p<=21&&(h>21||p>h);setDealer(d);setDeck(cards);setActive(false);setEnded(true);setStatus(p===h?"PUSH · DRAW":won?"YOU WIN":"DEALER WINS");done(won?p*20:20,won);};
-  const start=()=>{const cards=newDeck(),p=cards.slice(0,2),d=cards.slice(2,4);setDeck(cards.slice(4));setPlayer(p);setDealer(d);setActive(true);setEnded(false);setStatus("YOUR MOVE");if(value(p)===21){setActive(false);setEnded(true);setStatus("BLACKJACK");done(500,true);}};
+  const start=()=>{const cards=newDeck(),p=cards.slice(0,2),d=cards.slice(2,4);setDeck(cards.slice(4));setPlayer(p);setDealer(d);setActive(true);setEnded(false);setStatus("YOUR MOVE");if(value(p)===21){const dealerNatural=value(d)===21;setActive(false);setEnded(true);setStatus(dealerNatural?"PUSH · BOTH BLACKJACK":"BLACKJACK");done(dealerNatural?30:500,!dealerNatural);}};
   const hit=()=>{if(!active||!deck.length)return;const hand=[...player,deck[0]],rest=deck.slice(1);setPlayer(hand);setDeck(rest);if(value(hand)>21){setActive(false);setEnded(true);setStatus("BUST");done(value(hand),false);}else if(value(hand)===21)finish(hand,dealer,rest);};
   const reset=()=>{setDeck([]);setPlayer([]);setDealer([]);setActive(false);setEnded(false);setStatus("DEAL TO START");};
   const label=(c:Card)=>(c.rank===1?"A":c.rank===11?"J":c.rank===12?"Q":c.rank===13?"K":c.rank)+c.suit;
@@ -157,6 +167,12 @@ function Blackjack({done}:{done:Done}){
 function Frogger({done}:{done:Done}){
   const [frog,setFrog]=useState(76),[cars,setCars]=useState([19,22,25,30,34,38,43,47,51,55,59]),[crossings,setCrossings]=useState(0),[lives,setLives]=useState(3),[ended,setEnded]=useState(false);
   useEffect(()=>{if(ended)return;const timer=window.setInterval(()=>setCars(old=>old.map(cell=>{const row=Math.floor(cell/9),direction=row%2?1:-1;return row*9+(cell%9+direction+9)%9;})),520);return()=>window.clearInterval(timer);},[ended]);
+  // Moving vehicles must collide with a stationary frog too.
+  useEffect(()=>{
+    if(ended||!cars.includes(frog))return;
+    if(lives<=1){setLives(0);setEnded(true);done(crossings*150,false);}
+    else{setLives(value=>value-1);setFrog(76);}
+  },[cars,frog,lives,ended,crossings,done]);
   const move=(delta:number)=>{if(ended)return;const next=frog+delta;if(next<0||next>=81||(delta===-1&&frog%9===0)||(delta===1&&frog%9===8))return;if(cars.includes(next)){if(lives<=1){setLives(0);setEnded(true);done(crossings*150,false);}else setLives(v=>v-1);setFrog(76);return;}if(Math.floor(next/9)===0){const count=crossings+1;setCrossings(count);setFrog(76);if(count===3){setEnded(true);done(900,true);}return;}setFrog(next);};
   useEffect(()=>{const key=(e:KeyboardEvent)=>{const d:Record<string,number>={ArrowUp:-9,w:-9,ArrowDown:9,s:9,ArrowLeft:-1,a:-1,ArrowRight:1,d:1};if(d[e.key]!==undefined){e.preventDefault();move(d[e.key]);}};window.addEventListener("keydown",key);return()=>window.removeEventListener("keydown",key);});
   const reset=()=>{setFrog(76);setCars([19,22,25,30,34,38,43,47,51,55,59]);setCrossings(0);setLives(3);setEnded(false);};

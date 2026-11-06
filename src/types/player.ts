@@ -28,6 +28,7 @@ export interface Save {
   history: GameSession[];
   favorites: GameId[];
   sound: boolean;
+  effectsVolume: number;
   profileName: string;
   theme: "neon" | "light";
   skin: "mint" | "violet" | "ember" | "ice";
@@ -40,6 +41,6 @@ export interface Save {
 export const DEFAULT_SAVE: Save = {
   language: "uk",
   xp: 0, coins: 0, played: 0, wins: 0, best: {}, gameStats: {}, history: [], favorites: [],
-  sound: true, profileName: "PLAYER ONE", theme: "neon", skin: "mint", unlockedSkins: ["mint"],
+  sound: true, effectsVolume: 0.65, profileName: "PLAYER ONE", theme: "neon", skin: "mint", unlockedSkins: ["mint"],
   dailyDate: "", dailyRuns: 0, dailyClaimed: false,
 };
