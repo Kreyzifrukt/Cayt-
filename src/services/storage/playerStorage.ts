@@ -21,6 +21,11 @@ export function normalizeSave(value: unknown): Save {
     const score = value.best[id];
     if (typeof score === "number" && Number.isFinite(score) && score >= 0) best[id] = score;
   }
+  const validSkins = ["mint", "violet", "ember", "ice"] as const;
+  const unlockedSkins = Array.isArray(value.unlockedSkins)
+    ? [...new Set(value.unlockedSkins.filter((skin): skin is string => typeof skin === "string" && validSkins.includes(skin as typeof validSkins[number])))]
+    : ["mint"];
+  if (!unlockedSkins.includes("mint")) unlockedSkins.unshift("mint");
   const favorites = Array.isArray(value.favorites)
     ? [...new Set(value.favorites.filter((id): id is GameId => typeof id === "string" && GAME_IDS.includes(id as GameId)))]
     : [];
@@ -30,6 +35,8 @@ export function normalizeSave(value: unknown): Save {
     best, favorites, sound: typeof value.sound === "boolean" ? value.sound : true,
     profileName: typeof value.profileName === "string" ? value.profileName.slice(0, 20) : DEFAULT_SAVE.profileName,
     theme: value.theme === "light" ? "light" : "neon",
+    skin: validSkins.includes(value.skin as typeof validSkins[number]) && unlockedSkins.includes(value.skin as string) ? value.skin as Save["skin"] : "mint",
+    unlockedSkins,
     dailyDate: typeof value.dailyDate === "string" ? value.dailyDate : "",
     dailyRuns: readNumber(value.dailyRuns, 0),
     dailyClaimed: typeof value.dailyClaimed === "boolean" ? value.dailyClaimed : false,

@@ -32,10 +32,10 @@ A responsive, local-first arcade hub built with React, TypeScript and Vite. **23
 - **Mini Sudoku** — compact 4×4 logic puzzle.
 
 ## Player features
-- XP, levels, coins, personal bests and favorites
+- XP, levels, coins, unlockable color palettes, personal bests and favorites
 - Seven achievement milestones and a daily three-game quest
 - Search, genre filters and favorites-only view
-- Editable player name, dark/light appearance and sound preference
+- Editable player name, dark/light appearance, sound preference and earnable cosmetic accent palettes
 - Fullscreen game view
 - JSON save export/import and local profile reset
 - Backward-compatible local save migration and input validation

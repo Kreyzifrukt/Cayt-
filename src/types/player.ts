@@ -10,6 +10,8 @@ export interface Save {
   sound: boolean;
   profileName: string;
   theme: "neon" | "light";
+  skin: "mint" | "violet" | "ember" | "ice";
+  unlockedSkins: string[];
   dailyDate: string;
   dailyRuns: number;
   dailyClaimed: boolean;
@@ -17,6 +19,6 @@ export interface Save {
 
 export const DEFAULT_SAVE: Save = {
   xp: 0, coins: 0, played: 0, wins: 0, best: {}, favorites: [],
-  sound: true, profileName: "PLAYER ONE", theme: "neon",
+  sound: true, profileName: "PLAYER ONE", theme: "neon", skin: "mint", unlockedSkins: ["mint"],
   dailyDate: "", dailyRuns: 0, dailyClaimed: false,
 };

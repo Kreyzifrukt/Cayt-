@@ -10,6 +10,8 @@ describe("player save normalization", () => {
     expect(save.best["word-scramble"]).toBe(150);
     expect(save.sound).toBe(false);
     expect(save.theme).toBe("neon");
+    expect(save.skin).toBe("mint");
+    expect(save.unlockedSkins).toEqual(["mint"]);
     expect(save.profileName).toBe("PLAYER ONE");
   });
 
@@ -27,6 +29,12 @@ describe("player save normalization", () => {
     expect(save.coins).toBe(0);
     expect(save.profileName).toHaveLength(20);
     expect(save.theme).toBe("neon");
+  });
+
+  it("restores only unlocked cosmetic palettes", () => {
+    const save = normalizeSave({ skin: "ember", unlockedSkins: ["mint", "ember", "invalid"] });
+    expect(save.skin).toBe("ember");
+    expect(save.unlockedSkins).toEqual(["mint", "ember"]);
   });
 
   it("registers exactly 23 games", () => {
