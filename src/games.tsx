@@ -2,7 +2,8 @@ import { useCallback,useEffect,useRef,useState } from "react";
 import { Activity,Play,RotateCcw } from "lucide-react";
 import { Memory,XO,Reflex } from "./games-extra";
 export type GameId="snake"|"2048"|"memory"|"xo"|"reflex";
-type Props={id:GameId;onFinish:(id:GameId,score:number,won:boolean)=>void};\ntype CallbackProps={onFinish:(id:GameId,score:number,won:boolean)=>void};
+type Props={id:GameId;onFinish:(id:GameId,score:number,won:boolean)=>void};
+type CallbackProps={onFinish:(id:GameId,score:number,won:boolean)=>void};
 export function Game({id,onFinish}:Props){if(id==="snake")return <Snake onFinish={onFinish}/>;if(id==="2048")return <Puzzle onFinish={onFinish}/>;if(id==="memory")return <Memory onFinish={onFinish}/>;if(id==="xo")return <XO onFinish={onFinish}/>;return <Reflex onFinish={onFinish}/>;}
 function Toolbar({label,score}:{label:string;score:number}){return <div className="game-toolbar"><span className="game-live"><i/> {label}</span><span className="game-score">SCORE <b>{score}</b></span></div>;}
 type Point={x:number;y:number};
