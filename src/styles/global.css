@@ -98,3 +98,49 @@ button,.gem,.mine-cell,.tap-cell,.letter-tile{touch-action:manipulation}
   .game-page{padding-left:12px;padding-right:12px}
   .mobile-game-controls button{width:52px;height:46px}
 }
+
+/* Player profile and session analytics. */
+.profile-hero{display:flex;align-items:center;gap:18px;margin:24px 0 18px;padding:22px 24px;border:1px solid var(--line);border-radius:10px;background:radial-gradient(circle at 10% 0%,#203a3b 0,transparent 42%),#111a26}
+.profile-avatar-large{width:62px;height:62px;display:grid;place-items:center;border:1px solid var(--mint);border-radius:18px;background:#17332d;color:var(--mint);font:700 20px "DM Mono",monospace;box-shadow:0 0 28px #79f0bd20}
+.profile-identity{min-width:0}.profile-identity>span,.profile-hero-total small{font:8px "DM Mono",monospace;letter-spacing:1.3px;color:#8795a8}
+.profile-identity h2{margin:5px 0;font:700 19px "DM Mono",monospace;letter-spacing:1px;color:#f2f5fa;overflow-wrap:anywhere}
+.profile-identity p{display:flex;align-items:center;gap:7px;margin:0;color:var(--mint);font:9px "DM Mono",monospace}.profile-identity p i{width:3px;height:3px;border-radius:50%;background:#8290a3}
+.profile-hero-total{margin-left:auto;text-align:right}.profile-hero-total strong{display:block;margin-top:4px;color:var(--mint);font:700 30px "DM Mono",monospace}
+.profile-metrics .stat{min-width:0}
+.profile-period-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0 34px}
+.profile-period-card{min-height:142px;padding:16px;border:1px solid var(--line);border-radius:8px;background:#111621;display:flex;flex-direction:column;align-items:flex-start;gap:7px}
+.profile-card-kicker{display:flex;align-items:center;gap:7px;color:#98a6b8;font:8px "DM Mono",monospace;letter-spacing:.8px}.profile-card-kicker svg{color:var(--mint)}
+.profile-period-card>strong{margin-top:6px;color:var(--mint);font:700 25px "DM Mono",monospace}.profile-period-card>span{color:#e5ebf3;font-size:12px;font-weight:700}
+.profile-period-card>small{color:#7f8ca0;font:8px "DM Mono",monospace}.profile-period-card>p{margin:auto 0;color:#8592a5;font-size:10px;line-height:1.5}
+.profile-section-heading{display:flex;align-items:flex-end;justify-content:space-between;margin:22px 0 12px}.profile-section-heading h2{margin:5px 0 0;font-size:16px;letter-spacing:.6px}
+.profile-game-table{overflow:hidden;border:1px solid var(--line);border-radius:8px;background:#111621}
+.profile-table-head,.profile-game-row{display:grid;grid-template-columns:minmax(180px,2fr) .7fr .9fr 1fr;align-items:center;gap:12px;padding:11px 15px}
+.profile-table-head{background:#192331;color:#8795a8;font:8px "DM Mono",monospace;letter-spacing:.7px}
+.profile-game-row{position:relative;min-height:58px;border-top:1px solid #242d3a;color:#cbd5e2;font:10px "DM Mono",monospace}
+.profile-game-name{display:flex;align-items:center;gap:9px;min-width:0}.profile-game-name b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e8edf5;font-size:9px}
+.profile-game-name .record-icon{width:28px;height:28px;flex:0 0 28px}.profile-game-name .record-icon svg{width:14px}
+.profile-number,.profile-rate,.profile-time{font-variant-numeric:tabular-nums}.profile-rate{color:var(--mint)}
+.profile-game-progress{grid-column:1/-1;height:3px;border-radius:5px;background:#25303e;overflow:hidden;margin-top:-4px}.profile-game-progress i{display:block;height:100%;border-radius:5px;background:var(--mint)}
+.profile-game-row>small{position:absolute;right:15px;bottom:8px;color:#758397;font-size:7px}
+.recent-heading{margin-top:34px}.session-history{overflow:hidden;border:1px solid var(--line);border-radius:8px;background:#111621}
+.session-row{display:grid;grid-template-columns:24px minmax(120px,1fr) auto auto auto;align-items:center;gap:13px;padding:12px 15px;border-bottom:1px solid #242d3a}.session-row:last-child{border-bottom:0}
+.session-result-dot{width:22px;height:22px;display:grid;place-items:center;border-radius:50%;font:12px "DM Mono",monospace}
+.session-result-dot.won{background:#17372c;color:var(--mint)}.session-result-dot.lost{background:#30232b;color:#e79aa7}
+.session-game{min-width:0}.session-game b,.session-game small{display:block}.session-game b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e5ebf3;font:9px "DM Mono",monospace}.session-game small{margin-top:4px;color:#7e8ca0;font-size:8px}
+.session-row>strong{color:#e5ebf3;font:10px "DM Mono",monospace}.session-row>strong small{color:#8290a3;font-size:7px}.session-row>span{color:#aab6c6;font:9px "DM Mono",monospace}.session-row>em{font:8px "DM Mono",monospace;font-style:normal}.session-won{color:var(--mint)}.session-lost{color:#d58d9a}
+.profile-empty{display:flex;align-items:center;gap:12px;padding:22px;border:1px dashed #39475a;border-radius:8px;color:#8997aa;font-size:10px}.profile-empty svg{color:var(--mint);flex:0 0 auto}
+.light-theme .profile-hero{background:linear-gradient(120deg,#e0eee8,#fff);border-color:#cbd3df}
+.light-theme .profile-identity h2,.light-theme .profile-period-card>span,.light-theme .profile-game-name b,.light-theme .session-game b,.light-theme .session-row>strong{color:#172234}
+.light-theme .profile-period-card,.light-theme .profile-game-table,.light-theme .session-history{background:#fff;border-color:#d2d9e3}
+.light-theme .profile-table-head{background:#e7edf4;color:#59687d}.light-theme .profile-game-row,.light-theme .session-row{border-color:#e1e6ed;color:#344257}
+.light-theme .profile-period-card>p,.light-theme .profile-period-card>small,.light-theme .session-game small{color:#64748b}
+@media(max-width:760px){
+ .profile-hero{padding:16px;gap:12px}.profile-avatar-large{width:50px;height:50px;border-radius:14px;font-size:16px}
+ .profile-identity h2{font-size:14px}.profile-identity p{font-size:8px;flex-wrap:wrap}.profile-hero-total strong{font-size:23px}
+ .profile-period-grid{grid-template-columns:1fr;gap:8px}.profile-period-card{min-height:110px}
+ .profile-table-head{display:none}.profile-game-row{grid-template-columns:minmax(0,1fr) auto auto;gap:7px;padding:12px}
+ .profile-game-name{grid-column:1/-1}.profile-game-progress{grid-column:1/-1;margin:0}.profile-game-row>small{right:12px;bottom:7px}
+ .session-row{grid-template-columns:22px minmax(0,1fr) auto;gap:8px;padding:11px}
+ .session-row>span{grid-column:2}.session-row>em{grid-column:3;grid-row:2}.session-row>strong{grid-column:3;grid-row:1}
+}
+@media(max-width:420px){.profile-identity h2{font-size:12px}.profile-hero-total small{font-size:7px}.profile-hero-total strong{font-size:20px}.session-row>strong{font-size:9px}}
