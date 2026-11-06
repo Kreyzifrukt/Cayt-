@@ -20,7 +20,7 @@ A source review is not a substitute for playing the games in a browser. The curr
 | Word Scramble | Selection, attempt reset and scoring reviewed | Pending |
 | Minesweeper | Safe first click, flood reveal, flags and terminal input reviewed; flag limit and post-game input fixed | Pending |
 | Tetris | Collision and row clearing reviewed; rotation and full tetromino set remain gameplay limitations | Pending |
-| Breakout | Paddle/ball bounds and brick coordinates reviewed; rightmost column reachability fixed | Pending |
+| Breakout | Paddle/ball bounds and brick coordinates reviewed; boundary reflection clamped and paddle reach corrected | Pending |
 | Neon Pong | Ball collision, score and CPU movement reviewed | Pending |
 | Simon Says | Sequence playback and input timing reviewed; flash spacing and timer cleanup fixed | Pending |
 | Hangman | Duplicate-letter counting and terminal state reviewed | Pending |
@@ -58,7 +58,7 @@ A source review is not a substitute for playing the games in a browser. The curr
 - Blackjack natural 21 checks the dealer's natural 21 before awarding a win, and the dealer's second card stays hidden until the hand ends.
 - Tetris now has all seven standard tetrominoes, clockwise rotation, basic wall kicks, and keyboard/touch rotation controls.
 - Typing Rush rejects pasted text so the timed typing challenge cannot be completed by pasting the prompt.
-- Breakout's ball can reach every brick column.
+- Breakout's ball can reach every brick column; horizontal and ceiling bounces clamp to the board edge instead of skipping cells or moving outside the playfield.
 - Simon Says uses separated flashes and clears pending timers on reset/unmount.
 - Whack-a-Mole, Math Sprint, Color Clash and Typing Rush now use wall-clock deadlines; score/text updates no longer restart their round timers.
 - Whack-a-Mole cannot randomly keep the same target after a hit.
