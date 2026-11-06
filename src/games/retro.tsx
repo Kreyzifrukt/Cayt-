@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { RotateCcw } from "lucide-react";
 import type { GameId } from "../types/game";
+import { createGemBoard, findGemMatches, resolveGemCascades } from "./matchThreeLogic";
 
 type Done = (score: number, won: boolean) => void;
 type Props = { id: Extract<GameId, "fifteen-puzzle" | "sokoban" | "reversi" | "mastermind" | "blackjack" | "frogger" | "match-three" | "maze-runner">; onFinish: (id: GameId, score: number, won: boolean) => void };
@@ -185,13 +186,21 @@ function Frogger({done}:{done:Done}){
 }
 
 const GEMS=["mint","blue","pink","gold","violet"];
-type GemGrid=number[][];
 function MatchThree({done}:{done:Done}){
-  const create=()=>Array.from({length:7},()=>Array.from({length:7},()=>Math.floor(Math.random()*5)));
-  const [board,setBoard]=useState(create),[selected,setSelected]=useState<number|null>(null),[score,setScore]=useState(0),[moves,setMoves]=useState(25),[ended,setEnded]=useState(false);
-  const find=(grid:GemGrid)=>{const out=new Set<number>();for(let r=0;r<7;r++)for(let c=0;c<7;c++){const v=grid[r][c];if(c<5&&v===grid[r][c+1]&&v===grid[r][c+2]){let e=c+2;while(e+1<7&&grid[r][e+1]===v)e++;for(let x=c;x<=e;x++)out.add(r*7+x);}if(r<5&&v===grid[r+1][c]&&v===grid[r+2][c]){let e=r+2;while(e+1<7&&grid[e+1][c]===v)e++;for(let y=r;y<=e;y++)out.add(y*7+c);}}return out;};
-  const tap=(index:number)=>{if(ended)return;if(selected===null){setSelected(index);return;}if(Math.abs(selected%7-index%7)+Math.abs(Math.floor(selected/7)-Math.floor(index/7))!==1){setSelected(index);return;}const next=board.map(row=>[...row]),ar=Math.floor(selected/7),ac=selected%7,br=Math.floor(index/7),bc=index%7;[next[ar][ac],next[br][bc]]=[next[br][bc],next[ar][ac]];const cleared=find(next);if(!cleared.size){setSelected(null);return;}cleared.forEach(i=>next[Math.floor(i/7)][i%7]=-1);for(let c=0;c<7;c++){const rest=next.map(row=>row[c]).filter(v=>v>=0),fill=Array.from({length:7-rest.length},()=>Math.floor(Math.random()*5));[...fill,...rest].forEach((v,r)=>next[r][c]=v);}const total=score+cleared.size*20,left=moves-1;setBoard(next);setScore(total);setMoves(left);setSelected(null);if(total>=600){setEnded(true);done(total,true);}else if(left===0){setEnded(true);done(total,false);}};
-  const reset=()=>{setBoard(create());setSelected(null);setScore(0);setMoves(25);setEnded(false);};
+  const [board,setBoard]=useState(createGemBoard),[selected,setSelected]=useState<number|null>(null),[score,setScore]=useState(0),[moves,setMoves]=useState(25),[ended,setEnded]=useState(false);
+  const tap=(index:number)=>{
+    if(ended)return;
+    if(selected===null){setSelected(index);return;}
+    if(Math.abs(selected%7-index%7)+Math.abs(Math.floor(selected/7)-Math.floor(index/7))!==1){setSelected(index);return;}
+    const next=board.map(row=>[...row]),ar=Math.floor(selected/7),ac=selected%7,br=Math.floor(index/7),bc=index%7;
+    [next[ar][ac],next[br][bc]]=[next[br][bc],next[ar][ac]];
+    if(!findGemMatches(next).size){setSelected(null);return;}
+    const resolved=resolveGemCascades(next);
+    const total=score+resolved.cleared*20,left=moves-1;
+    setBoard(resolved.board);setScore(total);setMoves(left);setSelected(null);
+    if(total>=600){setEnded(true);done(total,true);}else if(left===0){setEnded(true);done(total,false);}
+  };
+  const reset=()=>{setBoard(createGemBoard());setSelected(null);setScore(0);setMoves(25);setEnded(false);};
   return <Panel title="GEM MATCH · THREE IN A ROW" score={score} reset={reset}>
     <p className="retro-note">Swap neighboring gems to match three or more. Reach 600 points within 25 moves.</p>
     <div className="match-meta"><span>{moves} MOVES LEFT</span><b>TARGET 600</b></div>
