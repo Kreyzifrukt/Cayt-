@@ -2,18 +2,21 @@ import type { GameId } from "./game";
 
 export interface Save {
   xp: number;
+  coins: number;
   played: number;
   wins: number;
   best: Partial<Record<GameId, number>>;
   favorites: GameId[];
   sound: boolean;
+  profileName: string;
+  theme: "neon" | "light";
+  dailyDate: string;
+  dailyRuns: number;
+  dailyClaimed: boolean;
 }
 
 export const DEFAULT_SAVE: Save = {
-  xp: 0,
-  played: 0,
-  wins: 0,
-  best: {},
-  favorites: [],
-  sound: true,
+  xp: 0, coins: 0, played: 0, wins: 0, best: {}, favorites: [],
+  sound: true, profileName: "PLAYER ONE", theme: "neon",
+  dailyDate: "", dailyRuns: 0, dailyClaimed: false,
 };
