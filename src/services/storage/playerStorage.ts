@@ -7,6 +7,7 @@ export const GAME_IDS: GameId[] = [
   "minesweeper", "tetris", "breakout", "pong", "simon", "hangman", "connect-four",
   "whack-a-mole", "math-sprint", "color-clash", "pattern-recall", "higher-lower",
   "typing-rush", "number-hunt", "mini-sudoku",
+  "fifteen-puzzle", "sokoban", "reversi", "mastermind", "blackjack", "frogger", "match-three", "maze-runner",
 ];
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
