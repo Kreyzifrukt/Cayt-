@@ -39,7 +39,7 @@ A source review is not a substitute for playing the games in a browser. The curr
 | Mastermind | Duplicate-color feedback and attempt limit reviewed | Pending |
 | Blackjack | Ace valuation, dealer stand threshold and natural blackjack comparison reviewed | Pending |
 | Frogger | Lane movement, lives and crossing completion reviewed; moving-car collisions fixed | Pending |
-| Gem Match | Adjacent swap, match scan, refill and move accounting reviewed; cascades and initial-board validation remain limitations | Pending |
+| Gem Match | Adjacent swap, match scan, refill, cascades and move accounting reviewed; initial boards are checked for at least one legal move | Pending |
 | Maze Runner | Wall boundaries, key/exit conditions and reachability reviewed; exit is reachable | Pending |
 
 ## Shared systems
@@ -70,8 +70,10 @@ A source review is not a substitute for playing the games in a browser. The curr
 - Snake ends cleanly if the player fills the entire board.
 - Higher or Lower treats an equal card as a tie rather than awarding either prediction.
 - Draw outcomes are persisted separately from losses for XO, Connect Four, Reversi and Blackjack.
+- XO's CPU now takes an immediate win when available and blocks the player's immediate winning move.
+- Imported global win/draw totals are clamped to the number of recorded games; contradictory session outcomes cannot be both a win and a draw.
 - 2048 now allows continued play after reaching the target tile, and only awards the first milestone once; the run can still end when no legal moves remain.
-- Gem Match now generates a board without pre-existing matches and resolves chained matches after a valid swap.
+- Gem Match generates boards without pre-existing matches and guarantees at least one legal swap; valid swaps resolve chained matches.
 - Shared click and result sounds use browser audio playback with a persistent effects-volume preference.
 - XP changes receive a small, restrained animation.
 
