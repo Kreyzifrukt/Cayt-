@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { GAME_IDS, normalizeSave } from "./playerStorage";
+import { randomDifferentIndex } from "../../games/gameUtils";
 
 describe("player save normalization", () => {
   it("keeps progress from the previous eight-game save format", () => {
@@ -51,6 +52,24 @@ describe("player save normalization", () => {
     expect(save.history).toEqual([]);
   });
 
+  it("keeps global wins and draws within the total number of games", () => {
+    const save = normalizeSave({ played: 5, wins: 9, draws: 4 });
+    expect(save.played).toBe(5);
+    expect(save.wins).toBe(5);
+    expect(save.draws).toBe(0);
+  });
+
+  it("preserves draw outcomes in per-game stats and session history", () => {
+    const save = normalizeSave({
+      played: 3, wins: 1, draws: 1,
+      gameStats: { xo: { played: 3, wins: 1, draws: 1 } },
+      history: [{ id: "xo", playedAt: "2026-11-06T10:00:00.000Z", durationSeconds: 30, score: 30, won: false, draw: true }],
+    });
+    expect(save.draws).toBe(1);
+    expect(save.gameStats.xo?.draws).toBe(1);
+    expect(save.history[0].draw).toBe(true);
+  });
+
   it("validates game statistics and recent session history", () => {
     const save = normalizeSave({
       gameStats: {
@@ -64,10 +83,35 @@ describe("player save normalization", () => {
         { id: "2048", playedAt: "not-a-date", durationSeconds: 30, score: 90, won: false },
       ],
     });
-    expect(save.gameStats.snake).toEqual({ played: 5, wins: 3, totalDurationSeconds: 240, bestScore: 90 });
-    expect(save.gameStats.tetris).toEqual({ played: 0, wins: 0, totalDurationSeconds: 0, bestScore: 0 });
+    expect(save.gameStats.snake).toEqual({ played: 5, wins: 3, draws: 0, totalDurationSeconds: 240, bestScore: 90 });
+    expect(save.gameStats.tetris).toEqual({ played: 0, wins: 0, draws: 0, totalDurationSeconds: 0, bestScore: 0 });
     expect(save.history).toHaveLength(1);
     expect(save.history[0].id).toBe("snake");
+  });
+
+  it("clamps and restores the effects volume setting", () => {
+    expect(normalizeSave({ effectsVolume: 0.35 }).effectsVolume).toBe(0.35);
+    expect(normalizeSave({ effectsVolume: 8 }).effectsVolume).toBe(1);
+    expect(normalizeSave({ effectsVolume: -2 }).effectsVolume).toBe(0);
+    expect(normalizeSave({ effectsVolume: "loud" }).effectsVolume).toBe(0.65);
+  });
+
+  it("normalizes music enabled state and music volume", () => {
+    expect(normalizeSave({ musicEnabled: true, musicVolume: 0.4 }).musicEnabled).toBe(true);
+    expect(normalizeSave({ musicEnabled: true, musicVolume: 4 }).musicVolume).toBe(1);
+    expect(normalizeSave({ musicEnabled: false, musicVolume: -1 }).musicVolume).toBe(0);
+    expect(normalizeSave({ musicEnabled: "yes", musicVolume: "loud" }).musicEnabled).toBe(false);
+    expect(normalizeSave({ musicEnabled: "yes", musicVolume: "loud" }).musicVolume).toBe(0.18);
+  });
+
+  it("chooses a different valid target for Whack-a-Mole", () => {
+    for (let current = 0; current < 9; current += 1) {
+      const next = randomDifferentIndex(current, 9, () => 0.5);
+      expect(next).toBeGreaterThanOrEqual(0);
+      expect(next).toBeLessThan(9);
+      expect(next).not.toBe(current);
+    }
+    expect(randomDifferentIndex(0, 1, () => 0.5)).toBe(0);
   });
 
   it("registers exactly 31 games", () => {

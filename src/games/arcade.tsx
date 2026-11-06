@@ -4,7 +4,7 @@ import type { GameId } from "../types/game";
 
 type Props = {
   id: Extract<GameId, "lights-out" | "tap-blitz" | "word-scramble">;
-  onFinish: (id: GameId, score: number, won: boolean) => void;
+  onFinish: (id: GameId, score: number, won: boolean, draw?: boolean) => void;
 };
 
 function Toolbar({ label, value }: { label: string; value: string | number }) {

@@ -2,9 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { RotateCcw } from "lucide-react";
 import type { GameId } from "../types/game";
+import { createGemBoard, ensurePlayableGemBoard, findGemMatches, resolveGemCascades } from "./matchThreeLogic";
+import { createShuffledDeck, handValue, type Card } from "./blackjackLogic";
 
-type Done = (score: number, won: boolean) => void;
-type Props = { id: Extract<GameId, "fifteen-puzzle" | "sokoban" | "reversi" | "mastermind" | "blackjack" | "frogger" | "match-three" | "maze-runner">; onFinish: (id: GameId, score: number, won: boolean) => void };
+type Done = (score: number, won: boolean, draw?: boolean) => void;
+type Props = { id: Extract<GameId, "fifteen-puzzle" | "sokoban" | "reversi" | "mastermind" | "blackjack" | "frogger" | "match-three" | "maze-runner">; onFinish: (id: GameId, score: number, won: boolean, draw?: boolean) => void };
 function Panel({ title, score, reset, children }: { title: string; score: string | number; reset: () => void; children: ReactNode }) {
   return <div className="engine collection-engine"><div className="game-toolbar"><span className="game-live"><i/> {title}</span><span className="game-score">SCORE <b>{score}</b></span></div>{children}<div className="collection-footer"><button className="secondary" onClick={reset}><RotateCcw size={14}/> RESTART</button><span>RETRO CLASSICS · LOCAL SESSION</span></div></div>;
 }
@@ -80,7 +82,7 @@ function flips(board: Disk[], index: number, player: Disk) {
 function Reversi({ done }: { done: Done }) {
   const initial=()=>{const board:Disk[]=Array(64).fill(0);board[27]=2;board[28]=1;board[35]=1;board[36]=2;return board;};
   const [board,setBoard]=useState(initial),[ended,setEnded]=useState(false),[message,setMessage]=useState("YOUR TURN");
-  const finish=(next:Disk[])=>{const mine=next.filter(value=>value===1).length,cpu=next.filter(value=>value===2).length;setBoard(next);setEnded(true);setMessage(mine>cpu?"YOU WIN":mine===cpu?"DRAW":"CPU WINS");done(mine*10,mine>cpu);};
+  const finish=(next:Disk[])=>{const mine=next.filter(value=>value===1).length,cpu=next.filter(value=>value===2).length;setBoard(next);setEnded(true);setMessage(mine>cpu?"YOU WIN":mine===cpu?"DRAW":"CPU WINS");done(mine*10,mine>cpu,mine===cpu);};
   const bestMove=(position:Disk[],player:Disk)=>{
     const options=position.flatMap((value,index)=>value===0&&flips(position,index,player).length?[index]:[]);
     options.sort((a,b)=>([0,7,56,63].includes(b)?100:0)+flips(position,b,player).length-(([0,7,56,63].includes(a)?100:0)+flips(position,a,player).length));
@@ -92,16 +94,26 @@ function Reversi({ done }: { done: Done }) {
   };
   const play=(index:number)=>{
     if(ended)return;
-    const captured=flips(board,index,1);if(!captured.length)return;
+    const captured=flips(board,index,1);
+    if(!captured.length)return;
     let next=apply(board,index,1);
-    const playerCanMove=bestMove(next,1)!==undefined;
-    const cpuMove=bestMove(next,2);
-    if(!playerCanMove&&cpuMove===undefined){finish(next);return;}
-    if(cpuMove!==undefined)next=apply(next,cpuMove,2);
-    const canPlay=bestMove(next,1)!==undefined,cpuCan=bestMove(next,2)!==undefined;
-    if(!canPlay&&!cpuCan){finish(next);return;}
-    setBoard(next);
-    setMessage(!canPlay?"YOU PASS · CPU MOVES":!cpuCan?"CPU PASSES · YOUR TURN":"YOUR TURN");
+    while(true){
+      const cpuMove=bestMove(next,2);
+      const playerMove=bestMove(next,1);
+      if(cpuMove===undefined&&playerMove===undefined){finish(next);return;}
+      if(cpuMove===undefined){
+        setBoard(next);
+        setMessage("CPU PASSES · YOUR TURN");
+        return;
+      }
+      next=apply(next,cpuMove,2);
+      if(bestMove(next,1)!==undefined){
+        setBoard(next);
+        setMessage("YOUR TURN");
+        return;
+      }
+      // If the player has no legal move, the CPU takes another turn automatically.
+    }
   };
   const reset=()=>{setBoard(initial());setEnded(false);setMessage("YOUR TURN");};
   return <Panel title="REVERSI · CONTROL THE BOARD" score={board.filter(value=>value===1).length+" : "+board.filter(value=>value===2).length} reset={reset}>
@@ -135,20 +147,16 @@ function Mastermind({ done }: { done: Done }) {
   </Panel>;
 }
 
-type Card={rank:number;suit:string};
-const SUITS=["♠","♥","♦","♣"];
-function newDeck():Card[]{return Array.from({length:52},(_,i)=>({rank:i%13+1,suit:SUITS[Math.floor(i/13)]})).sort(()=>Math.random()-.5);}
-function value(cards:Card[]){let total=cards.reduce((s,c)=>s+(c.rank>10?10:c.rank===1?11:c.rank),0),aces=cards.filter(c=>c.rank===1).length;while(total>21&&aces){total-=10;aces--;}return total;}
 function Blackjack({done}:{done:Done}){
   const [deck,setDeck]=useState<Card[]>([]),[player,setPlayer]=useState<Card[]>([]),[dealer,setDealer]=useState<Card[]>([]),[active,setActive]=useState(false),[status,setStatus]=useState("DEAL TO START"),[ended,setEnded]=useState(false);
-  const finish=(hand:Card[],house:Card[],remaining:Card[])=>{const d=[...house],cards=[...remaining];while(value(d)<17&&cards.length)d.push(cards.shift()!);const p=value(hand),h=value(d),won=p<=21&&(h>21||p>h);setDealer(d);setDeck(cards);setActive(false);setEnded(true);setStatus(p===h?"PUSH · DRAW":won?"YOU WIN":"DEALER WINS");done(won?p*20:20,won);};
-  const start=()=>{const cards=newDeck(),p=cards.slice(0,2),d=cards.slice(2,4);setDeck(cards.slice(4));setPlayer(p);setDealer(d);setActive(true);setEnded(false);setStatus("YOUR MOVE");if(value(p)===21){setActive(false);setEnded(true);setStatus("BLACKJACK");done(500,true);}};
-  const hit=()=>{if(!active||!deck.length)return;const hand=[...player,deck[0]],rest=deck.slice(1);setPlayer(hand);setDeck(rest);if(value(hand)>21){setActive(false);setEnded(true);setStatus("BUST");done(value(hand),false);}else if(value(hand)===21)finish(hand,dealer,rest);};
+  const finish=(hand:Card[],house:Card[],remaining:Card[])=>{const d=[...house],cards=[...remaining];while(handValue(d)<17&&cards.length)d.push(cards.shift()!);const p=handValue(hand),h=handValue(d),won=p<=21&&(h>21||p>h);setDealer(d);setDeck(cards);setActive(false);setEnded(true);setStatus(p===h?"PUSH · DRAW":won?"YOU WIN":"DEALER WINS");done(won?p*20:20,won,p<=21&&h<=21&&p===h);};
+  const start=()=>{const cards=createShuffledDeck(),p=cards.slice(0,2),d=cards.slice(2,4);setDeck(cards.slice(4));setPlayer(p);setDealer(d);setActive(true);setEnded(false);setStatus("YOUR MOVE");if(handValue(d)===21){finish(p,d,cards.slice(4));}else if(handValue(p)===21){setActive(false);setEnded(true);setStatus("BLACKJACK");done(500,true);}};
+  const hit=()=>{if(!active||!deck.length)return;const hand=[...player,deck[0]],rest=deck.slice(1);setPlayer(hand);setDeck(rest);if(handValue(hand)>21){setActive(false);setEnded(true);setStatus("BUST");done(handValue(hand),false);}else if(handValue(hand)===21)finish(hand,dealer,rest);};
   const reset=()=>{setDeck([]);setPlayer([]);setDealer([]);setActive(false);setEnded(false);setStatus("DEAL TO START");};
   const label=(c:Card)=>(c.rank===1?"A":c.rank===11?"J":c.rank===12?"Q":c.rank===13?"K":c.rank)+c.suit;
-  return <Panel title="BLACKJACK · DEALER STANDS ON 17" score={player.length?value(player):"—"} reset={reset}>
+  return <Panel title="BLACKJACK · DEALER STANDS ON 17" score={player.length?handValue(player):"—"} reset={reset}>
     <p className="retro-note">Get closer to 21 than the dealer without going over. Face cards count as 10; aces count as 1 or 11.</p>
-    <div className="blackjack-table"><div><small>DEALER · {dealer.length?value(dealer):"—"}</small><div className="playing-cards">{dealer.map((c,i)=><b key={i} className={c.suit==="♥"||c.suit==="♦"?"red-card":""}>{label(c)}</b>)}</div></div><div><small>YOU · {player.length?value(player):"—"}</small><div className="playing-cards">{player.map((c,i)=><b key={i} className={c.suit==="♥"||c.suit==="♦"?"red-card":""}>{label(c)}</b>)}</div></div></div>
+    <div className="blackjack-table"><div><small>DEALER · {dealer.length?(active&&dealer.length>1?handValue([dealer[0]])+" + ?":handValue(dealer)):"—"}</small><div className="playing-cards">{dealer.map((c,i)=><b key={i} className={c.suit==="♥"||c.suit==="♦"?"red-card":""}>{active&&i===1?"?":label(c)}</b>)}</div></div><div><small>YOU · {player.length?handValue(player):"—"}</small><div className="playing-cards">{player.map((c,i)=><b key={i} className={c.suit==="♥"||c.suit==="♦"?"red-card":""}>{label(c)}</b>)}</div></div></div>
     <div className="retro-actions"><button className="primary" onClick={start} disabled={active}>DEAL</button><button className="secondary" onClick={hit} disabled={!active}>HIT</button><button className="secondary" onClick={()=>finish(player,dealer,deck)} disabled={!active}>STAND</button></div>
     <div className="retro-status">{status}</div>{ended&&<div className="result"><b>{status}</b><button onClick={start}>NEW HAND</button></div>}
   </Panel>;
@@ -157,6 +165,12 @@ function Blackjack({done}:{done:Done}){
 function Frogger({done}:{done:Done}){
   const [frog,setFrog]=useState(76),[cars,setCars]=useState([19,22,25,30,34,38,43,47,51,55,59]),[crossings,setCrossings]=useState(0),[lives,setLives]=useState(3),[ended,setEnded]=useState(false);
   useEffect(()=>{if(ended)return;const timer=window.setInterval(()=>setCars(old=>old.map(cell=>{const row=Math.floor(cell/9),direction=row%2?1:-1;return row*9+(cell%9+direction+9)%9;})),520);return()=>window.clearInterval(timer);},[ended]);
+  // Moving vehicles must collide with a stationary frog too.
+  useEffect(()=>{
+    if(ended||!cars.includes(frog))return;
+    if(lives<=1){setLives(0);setEnded(true);done(crossings*150,false);}
+    else{setLives(value=>value-1);setFrog(76);}
+  },[cars,frog,lives,ended,crossings,done]);
   const move=(delta:number)=>{if(ended)return;const next=frog+delta;if(next<0||next>=81||(delta===-1&&frog%9===0)||(delta===1&&frog%9===8))return;if(cars.includes(next)){if(lives<=1){setLives(0);setEnded(true);done(crossings*150,false);}else setLives(v=>v-1);setFrog(76);return;}if(Math.floor(next/9)===0){const count=crossings+1;setCrossings(count);setFrog(76);if(count===3){setEnded(true);done(900,true);}return;}setFrog(next);};
   useEffect(()=>{const key=(e:KeyboardEvent)=>{const d:Record<string,number>={ArrowUp:-9,w:-9,ArrowDown:9,s:9,ArrowLeft:-1,a:-1,ArrowRight:1,d:1};if(d[e.key]!==undefined){e.preventDefault();move(d[e.key]);}};window.addEventListener("keydown",key);return()=>window.removeEventListener("keydown",key);});
   const reset=()=>{setFrog(76);setCars([19,22,25,30,34,38,43,47,51,55,59]);setCrossings(0);setLives(3);setEnded(false);};
@@ -169,13 +183,21 @@ function Frogger({done}:{done:Done}){
 }
 
 const GEMS=["mint","blue","pink","gold","violet"];
-type GemGrid=number[][];
 function MatchThree({done}:{done:Done}){
-  const create=()=>Array.from({length:7},()=>Array.from({length:7},()=>Math.floor(Math.random()*5)));
-  const [board,setBoard]=useState(create),[selected,setSelected]=useState<number|null>(null),[score,setScore]=useState(0),[moves,setMoves]=useState(25),[ended,setEnded]=useState(false);
-  const find=(grid:GemGrid)=>{const out=new Set<number>();for(let r=0;r<7;r++)for(let c=0;c<7;c++){const v=grid[r][c];if(c<5&&v===grid[r][c+1]&&v===grid[r][c+2]){let e=c+2;while(e+1<7&&grid[r][e+1]===v)e++;for(let x=c;x<=e;x++)out.add(r*7+x);}if(r<5&&v===grid[r+1][c]&&v===grid[r+2][c]){let e=r+2;while(e+1<7&&grid[e+1][c]===v)e++;for(let y=r;y<=e;y++)out.add(y*7+c);}}return out;};
-  const tap=(index:number)=>{if(ended)return;if(selected===null){setSelected(index);return;}if(Math.abs(selected%7-index%7)+Math.abs(Math.floor(selected/7)-Math.floor(index/7))!==1){setSelected(index);return;}const next=board.map(row=>[...row]),ar=Math.floor(selected/7),ac=selected%7,br=Math.floor(index/7),bc=index%7;[next[ar][ac],next[br][bc]]=[next[br][bc],next[ar][ac]];const cleared=find(next);if(!cleared.size){setSelected(null);return;}cleared.forEach(i=>next[Math.floor(i/7)][i%7]=-1);for(let c=0;c<7;c++){const rest=next.map(row=>row[c]).filter(v=>v>=0),fill=Array.from({length:7-rest.length},()=>Math.floor(Math.random()*5));[...fill,...rest].forEach((v,r)=>next[r][c]=v);}const total=score+cleared.size*20,left=moves-1;setBoard(next);setScore(total);setMoves(left);setSelected(null);if(total>=600){setEnded(true);done(total,true);}else if(left===0){setEnded(true);done(total,false);}};
-  const reset=()=>{setBoard(create());setSelected(null);setScore(0);setMoves(25);setEnded(false);};
+  const [board,setBoard]=useState(createGemBoard),[selected,setSelected]=useState<number|null>(null),[score,setScore]=useState(0),[moves,setMoves]=useState(25),[ended,setEnded]=useState(false);
+  const tap=(index:number)=>{
+    if(ended)return;
+    if(selected===null){setSelected(index);return;}
+    if(Math.abs(selected%7-index%7)+Math.abs(Math.floor(selected/7)-Math.floor(index/7))!==1){setSelected(index);return;}
+    const next=board.map(row=>[...row]),ar=Math.floor(selected/7),ac=selected%7,br=Math.floor(index/7),bc=index%7;
+    [next[ar][ac],next[br][bc]]=[next[br][bc],next[ar][ac]];
+    if(!findGemMatches(next).size){setSelected(null);return;}
+    const resolved=resolveGemCascades(next);
+    const total=score+resolved.cleared*20,left=moves-1;
+    setBoard(ensurePlayableGemBoard(resolved.board));setScore(total);setMoves(left);setSelected(null);
+    if(total>=600){setEnded(true);done(total,true);}else if(left===0){setEnded(true);done(total,false);}
+  };
+  const reset=()=>{setBoard(createGemBoard());setSelected(null);setScore(0);setMoves(25);setEnded(false);};
   return <Panel title="GEM MATCH · THREE IN A ROW" score={score} reset={reset}>
     <p className="retro-note">Swap neighboring gems to match three or more. Reach 600 points within 25 moves.</p>
     <div className="match-meta"><span>{moves} MOVES LEFT</span><b>TARGET 600</b></div>
@@ -201,7 +223,7 @@ function MazeRunner({done}:{done:Done}){
 }
 
 export function RetroGame({id,onFinish}:Props){
-  const done=useCallback((score:number,won:boolean)=>onFinish(id,score,won),[id,onFinish]);
+  const done=useCallback((score:number,won:boolean,draw=false)=>onFinish(id,score,won,draw),[id,onFinish]);
   switch(id){
     case "fifteen-puzzle":return <Fifteen done={done}/>;
     case "sokoban":return <Sokoban done={done}/>;

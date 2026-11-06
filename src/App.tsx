@@ -11,6 +11,7 @@ import { GameGuide } from "./components/game-guide";
 import { PlayerStats } from "./components/player-stats";
 import { gameCopy } from "./games/gameGuides";
 import { t } from "./i18n";
+import { playArcadeSound, setArcadeMusicVolume, startArcadeMusic, stopArcadeMusic } from "./services/audio/audioManager";
 
 function todayKey() {
   const d = new Date();
@@ -28,25 +29,47 @@ export default function App() {
   const tr=(key: Parameters<typeof t>[1])=>t(save.language,key);
   const selectedCopy=active?gameCopy(active,save.language):null;
   useEffect(()=>{if(save.dailyDate!==todayKey())setSave(s=>({...s,dailyDate:todayKey(),dailyRuns:0,dailyClaimed:false}));},[save.dailyDate,setSave]);
-  const finish=(id:GameId,score:number,won:boolean)=>{
+  useEffect(()=>{
+    if(!save.musicEnabled){stopArcadeMusic();return;}
+    // Browsers may reject autoplay until the first user gesture. Keep the
+    // preference enabled and retry once the user interacts with the page.
+    const startAfterGesture=()=>{void startArcadeMusic(save.musicVolume);};
+    startAfterGesture();
+    document.addEventListener("pointerdown",startAfterGesture,{once:true});
+    document.addEventListener("keydown",startAfterGesture,{once:true});
+    return ()=>{
+      document.removeEventListener("pointerdown",startAfterGesture);
+      document.removeEventListener("keydown",startAfterGesture);
+      stopArcadeMusic();
+    };
+  },[save.musicEnabled]);
+  useEffect(()=>{setArcadeMusicVolume(save.musicVolume);},[save.musicVolume]);
+  const finish=(id:GameId,score:number,won:boolean,draw=false)=>{
     const finishedAt=Date.now();
     const startedAt=runStartedAt.current;
     if(startedAt===null)return;
     runStartedAt.current=null;
     awaitingRestart.current=true;
-    const session={id,playedAt:new Date(finishedAt).toISOString(),durationSeconds:Math.max(0,Math.round((finishedAt-startedAt)/1000)),score:Math.max(0,score),won};
-    if(save.sound){try{const context=new AudioContext();const oscillator=context.createOscillator();const gain=context.createGain();oscillator.type="sine";oscillator.frequency.value=won?880:260;gain.gain.setValueAtTime(0.035,context.currentTime);gain.gain.exponentialRampToValueAtTime(0.001,context.currentTime+0.18);oscillator.connect(gain);gain.connect(context.destination);oscillator.start();oscillator.stop(context.currentTime+0.18);oscillator.onended=()=>void context.close();}catch{/* Audio is optional and may be unavailable. */}}
+    const session={id,playedAt:new Date(finishedAt).toISOString(),durationSeconds:Math.max(0,Math.round((finishedAt-startedAt)/1000)),score:Math.max(0,score),won,draw};
+    const currentDailyDate=save.dailyDate===todayKey();
+    const nextDailyRuns=(currentDailyDate?save.dailyRuns:0)+1;
+    const dailyReward=nextDailyRuns===3&&!(currentDailyDate&&save.dailyClaimed);
+    const baseXp=Math.max(5,Math.round(score/5)+10);
+    const gainedXp=baseXp+(dailyReward?50:0);
+    const levelUp=Math.floor((save.xp+gainedXp)/250)>Math.floor(save.xp/250);
+    if(save.sound)playArcadeSound(dailyReward||levelUp?"reward":draw?"click":won?"win":"lose",save.effectsVolume);
     setSave(s=>{
       const fresh=s.dailyDate===todayKey()?s:{...s,dailyDate:todayKey(),dailyRuns:0,dailyClaimed:false};
       const runs=fresh.dailyRuns+1;
       const reward=runs===3&&!fresh.dailyClaimed;
       return {...fresh,xp:fresh.xp+Math.max(5,Math.round(score/5)+10)+(reward?50:0),
         coins:fresh.coins+Math.max(1,Math.floor(score/100))+(reward?25:0),
-        played:fresh.played+1,wins:fresh.wins+(won?1:0),dailyRuns:runs,dailyClaimed:fresh.dailyClaimed||reward,
+        played:fresh.played+1,wins:fresh.wins+(won?1:0),draws:fresh.draws+(draw?1:0),dailyRuns:runs,dailyClaimed:fresh.dailyClaimed||reward,
         best:{...fresh.best,[id]:Math.max(fresh.best[id]||0,score)},
         gameStats:{...fresh.gameStats,[id]:{
           played:(fresh.gameStats[id]?.played||0)+1,
           wins:(fresh.gameStats[id]?.wins||0)+(won?1:0),
+          draws:(fresh.gameStats[id]?.draws||0)+(draw?1:0),
           totalDurationSeconds:(fresh.gameStats[id]?.totalDurationSeconds||0)+session.durationSeconds,
           bestScore:Math.max(fresh.gameStats[id]?.bestScore||0,score),
         }},
@@ -86,7 +109,7 @@ export default function App() {
   };
   const skins=[{id:"mint",name:"NEON MINT",price:0},{id:"violet",name:"VIOLET PULSE",price:100},{id:"ember",name:"EMBER CORE",price:125},{id:"ice",name:"ARCTIC GLOW",price:150}] as const;
 
-  return <div className={["shell",save.theme==="light"?"light-theme":"",save.skin!=="mint"?`skin-${save.skin}`:""].filter(Boolean).join(" ")}>
+  return <div className={["shell",save.theme==="light"?"light-theme":"",save.skin!=="mint"?`skin-${save.skin}`:""].filter(Boolean).join(" ")} onClickCapture={event=>{const target=event.target as HTMLElement;if(save.sound&&!target.closest("input,textarea,select"))playArcadeSound("click",save.effectsVolume*0.35);}}>
     <aside className={`sidebar ${menu?"open":""}`}>
       <button className="brand" onClick={()=>{setActive(null);setStats(false);setSettings(false);}}><span className="brand-icon"><Gamepad2/></span><span>NEON<span className="brand-light">ARCADE</span><small>PLAY BEYOND LIMITS</small></span></button>
       <div className="side-label">{tr("yourSpace")}</div>
@@ -99,9 +122,10 @@ export default function App() {
     </aside>
     {menu&&<button className="scrim" onClick={()=>setMenu(false)} aria-label="Close menu"/>}
     <main className="main">
-      <header className="topbar"><button className="menu-button" onClick={()=>setMenu(true)}><span>☰</span></button><div className="crumb">ARCADE <span>/</span> {selectedCopy?.title||(stats?tr("statistics"):settings?tr("settings"):tr("dashboard"))}</div><div className="top-right"><span className="online"><i/> {tr("online")}</span><span className="xp"><Sparkles size={15}/> {save.xp.toLocaleString()} XP · {save.coins} {tr("coins")}</span></div></header>
+      <header className="topbar"><button className="menu-button" onClick={()=>setMenu(true)}><span>☰</span></button><div className="crumb">ARCADE <span>/</span> {selectedCopy?.title||(stats?tr("statistics"):settings?tr("settings"):tr("dashboard"))}</div><div className="top-right"><span className="online"><i/> {tr("online")}</span><span key={save.xp} className="xp xp-earned"><Sparkles size={15}/> {save.xp.toLocaleString()} XP · {save.coins} {tr("coins")}</span></div></header>
       {selected?<section className="game-page"><button className="back" onClick={()=>setActive(null)}>{tr("back")}</button><div className="game-title"><div><div className="eyebrow">{selectedCopy?.genre} / {selectedCopy?.level}</div><h1>{selectedCopy?.title}</h1><p>{selectedCopy?.description}</p></div><div className="best"><Trophy/><span>{tr("personalBest")}</span><b>{(save.best[active!]||0).toLocaleString()}</b></div></div><div className="game-toolbar-actions"><button className="secondary" onClick={()=>document.querySelector(".playfield")?.requestFullscreen?.()}><Maximize2 size={14}/> {tr("fullscreen")}</button></div><GameGuide id={active!} language={save.language}/><div className="playfield"><Game key={active} id={active!} onFinish={finish}/></div><div className="hint">ⓘ {tr("keyboardHint")}</div></section>
-      :stats?<PlayerStats save={save} level={level}/>:settings?<section className="content settings-page"><div className="eyebrow">{tr("profileConfiguration")}</div><h1 className="page-title">{tr("settingsTitle")}</h1><p className="sub">{tr("settingsSubtitle")}</p><div className="settings-panel"><label>{tr("playerName")}<input maxLength={20} value={save.profileName} onChange={e=>setSave(s=>({...s,profileName:e.target.value.slice(0,20)}))}/></label><div className="setting-row"><div><b>{tr("appearance")}</b><small>{tr("appearanceHelp")}</small></div><div className="setting-actions"><button className={save.theme==="neon"?"secondary selected":"secondary"} onClick={()=>setSave(s=>({...s,theme:"neon"}))}>{tr("neonDark")}</button><button className={save.theme==="light"?"secondary selected":"secondary"} onClick={()=>setSave(s=>({...s,theme:"light"}))}>{tr("light")}</button></div></div><div className="setting-row"><div><b>{tr("sound")}</b><small>{tr("soundHelp")}</small></div><button className="secondary" onClick={()=>setSave(s=>({...s,sound:!s.sound}))}>{save.sound?tr("soundOn"):tr("soundOff")}</button></div><div className="setting-row"><div><b>{tr("language")}</b><small>{tr("languageHelp")}</small></div><div className="setting-actions"><button className={save.language==="uk"?"secondary selected":"secondary"} onClick={()=>setSave(s=>({...s,language:"uk"}))}>УКРАЇНСЬКА</button><button className={save.language==="en"?"secondary selected":"secondary"} onClick={()=>setSave(s=>({...s,language:"en"}))}>ENGLISH</button></div></div><div className="setting-row shop-row"><div><b>{tr("cosmeticShop")}</b><small>{tr("shopHelp")}</small></div><div className="skin-shop">{skins.map(item=>{const unlocked=save.unlockedSkins.includes(item.id);return <button key={item.id} className={save.skin===item.id?"skin-option equipped":"skin-option"} disabled={!unlocked&&save.coins<item.price} onClick={()=>setSave(s=>s.unlockedSkins.includes(item.id)?{...s,skin:item.id}:{...s,coins:s.coins-item.price,unlockedSkins:[...s.unlockedSkins,item.id],skin:item.id})}><i className={`skin-swatch ${item.id}`}/><b>{item.name}</b><small>{save.skin===item.id?tr("equipped"):unlocked?tr("unlocked"):`${item.price} COINS`}</small></button>;})}</div></div><div className="setting-row"><div><b>{tr("localBackup")}</b><small>{tr("backupHelp")}</small></div><div className="setting-actions"><button className="secondary" onClick={exportSave}><Download size={14}/> {tr("export")}</button><label className="secondary file-label"><Upload size={14}/> {tr("import")}<input type="file" accept="application/json,.json" onChange={e=>{const file=e.target.files?.[0];if(file)importSave(file);e.currentTarget.value="";}}/></label></div></div><div className="setting-row danger-row"><div><b>{tr("resetProfile")}</b><small>{tr("resetHelp")}</small></div><button className="secondary danger-button" onClick={resetSave}><RotateCcw size={14}/> {tr("resetAll")}</button></div></div><p className="privacy"><Shield/> {tr("noBackend")}</p></section>
+      :stats?<PlayerStats save={save} level={level}/>:settings?<section className="content settings-page"><div className="eyebrow">{tr("profileConfiguration")}</div><h1 className="page-title">{tr("settingsTitle")}</h1><p className="sub">{tr("settingsSubtitle")}</p><div className="settings-panel"><label>{tr("playerName")}<input maxLength={20} value={save.profileName} onChange={e=>setSave(s=>({...s,profileName:e.target.value.slice(0,20)}))}/></label><div className="setting-row"><div><b>{tr("appearance")}</b><small>{tr("appearanceHelp")}</small></div><div className="setting-actions"><button className={save.theme==="neon"?"secondary selected":"secondary"} onClick={()=>setSave(s=>({...s,theme:"neon"}))}>{tr("neonDark")}</button><button className={save.theme==="light"?"secondary selected":"secondary"} onClick={()=>setSave(s=>({...s,theme:"light"}))}>{tr("light")}</button></div></div><div className="setting-row"><div><b>{tr("sound")}</b><small>{tr("soundHelp")}</small></div><div className="setting-actions"><button className="secondary" onClick={()=>setSave(s=>({...s,sound:!s.sound}))}>{save.sound?tr("soundOn"):tr("soundOff")}</button><label className="volume-control">{tr("effectsVolume")}<input type="range" min="0" max="1" step="0.05" value={save.effectsVolume} disabled={!save.sound} onChange={e=>setSave(s=>({...s,effectsVolume:Number(e.target.value)}))}/></label></div></div>
+    <div className="setting-row"><div><b>{tr("music")}</b><small>{tr("musicHelp")}</small></div><div className="setting-actions"><button className="secondary" onClick={()=>{const enabled=!save.musicEnabled;setSave(s=>({...s,musicEnabled:enabled}));if(enabled){void startArcadeMusic(save.musicVolume).then(playing=>{if(!playing)setSave(s=>({...s,musicEnabled:false}));});}else stopArcadeMusic();}}>{save.musicEnabled?tr("musicOn"):tr("musicOff")}</button><label className="volume-control">{tr("musicVolume")}<input type="range" min="0" max="1" step="0.05" value={save.musicVolume} onChange={e=>{const volume=Number(e.target.value);setSave(s=>({...s,musicVolume:volume}));setArcadeMusicVolume(volume);}}/></label></div></div><div className="setting-row"><div><b>{tr("language")}</b><small>{tr("languageHelp")}</small></div><div className="setting-actions"><button className={save.language==="uk"?"secondary selected":"secondary"} onClick={()=>setSave(s=>({...s,language:"uk"}))}>УКРАЇНСЬКА</button><button className={save.language==="en"?"secondary selected":"secondary"} onClick={()=>setSave(s=>({...s,language:"en"}))}>ENGLISH</button></div></div><div className="setting-row shop-row"><div><b>{tr("cosmeticShop")}</b><small>{tr("shopHelp")}</small></div><div className="skin-shop">{skins.map(item=>{const unlocked=save.unlockedSkins.includes(item.id);return <button key={item.id} className={save.skin===item.id?"skin-option equipped":"skin-option"} disabled={!unlocked&&save.coins<item.price} onClick={()=>setSave(s=>s.unlockedSkins.includes(item.id)?{...s,skin:item.id}:{...s,coins:s.coins-item.price,unlockedSkins:[...s.unlockedSkins,item.id],skin:item.id})}><i className={`skin-swatch ${item.id}`}/><b>{item.name}</b><small>{save.skin===item.id?tr("equipped"):unlocked?tr("unlocked"):`${item.price} COINS`}</small></button>;})}</div></div><div className="setting-row"><div><b>{tr("localBackup")}</b><small>{tr("backupHelp")}</small></div><div className="setting-actions"><button className="secondary" onClick={exportSave}><Download size={14}/> {tr("export")}</button><label className="secondary file-label"><Upload size={14}/> {tr("import")}<input type="file" accept="application/json,.json" onChange={e=>{const file=e.target.files?.[0];if(file)importSave(file);e.currentTarget.value="";}}/></label></div></div><div className="setting-row danger-row"><div><b>{tr("resetProfile")}</b><small>{tr("resetHelp")}</small></div><button className="secondary danger-button" onClick={resetSave}><RotateCcw size={14}/> {tr("resetAll")}</button></div></div><p className="privacy"><Shield/> {tr("noBackend")}</p></section>
       :<Dashboard save={save} level={level} launch={launch} favorite={id=>setSave(s=>({...s,favorites:s.favorites.includes(id)?s.favorites.filter(x=>x!==id):[...s.favorites,id]}))}/>}
       <footer className="footer"><span>NEON ARCADE <b>•</b> {save.language==="uk"?"СТВОРЕНО ДЛЯ НОВИХ РЕКОРДІВ":"BUILT FOR THE NEXT HIGH SCORE"}</span><span>{save.language==="uk"?"ЛОКАЛЬНЕ ЗБЕРЕЖЕННЯ УВІМКНЕНО":"LOCAL SAVE ENABLED"} <i/></span></footer>
     </main>
