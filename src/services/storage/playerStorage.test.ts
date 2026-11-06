@@ -84,7 +84,7 @@ describe("player save normalization", () => {
       ],
     });
     expect(save.gameStats.snake).toEqual({ played: 5, wins: 3, draws: 0, totalDurationSeconds: 240, bestScore: 90 });
-    expect(save.gameStats.tetris).toEqual({ played: 0, wins: 0, totalDurationSeconds: 0, bestScore: 0 });
+    expect(save.gameStats.tetris).toEqual({ played: 0, wins: 0, draws: 0, totalDurationSeconds: 0, bestScore: 0 });
     expect(save.history).toHaveLength(1);
     expect(save.history[0].id).toBe("snake");
   });
