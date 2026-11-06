@@ -31,6 +31,7 @@ export function normalizeSave(value: unknown): Save {
     gameStats[id] = {
       played,
       wins: Math.min(played, readNumber(raw.wins, 0)),
+      draws: Math.min(Math.max(0, played - readNumber(raw.wins, 0)), readNumber(raw.draws, 0)),
       totalDurationSeconds: readNumber(raw.totalDurationSeconds, 0),
       bestScore: readNumber(raw.bestScore, 0),
     };
@@ -47,6 +48,7 @@ export function normalizeSave(value: unknown): Save {
         durationSeconds: readNumber(entry.durationSeconds, 0),
         score: readNumber(entry.score, 0),
         won: entry.won as boolean,
+        draw: entry.draw === true,
       }))
     : [];
   const validSkins = ["mint", "violet", "ember", "ice"] as const;
@@ -60,7 +62,7 @@ export function normalizeSave(value: unknown): Save {
   return {
     language: value.language === "en" ? "en" : "uk",
     xp: readNumber(value.xp, 0), coins: readNumber(value.coins, 0),
-    played: readNumber(value.played, 0), wins: readNumber(value.wins, 0),
+    played: readNumber(value.played, 0), wins: readNumber(value.wins, 0), draws: Math.min(Math.max(0, readNumber(value.played, 0) - readNumber(value.wins, 0)), readNumber(value.draws, 0)),
     best, gameStats, history, favorites, sound: typeof value.sound === "boolean" ? value.sound : true,
     effectsVolume: typeof value.effectsVolume === "number" && Number.isFinite(value.effectsVolume) ? Math.max(0, Math.min(1, value.effectsVolume)) : DEFAULT_SAVE.effectsVolume,
     musicEnabled: typeof value.musicEnabled === "boolean" ? value.musicEnabled : DEFAULT_SAVE.musicEnabled,

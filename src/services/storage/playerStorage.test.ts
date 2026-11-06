@@ -52,6 +52,17 @@ describe("player save normalization", () => {
     expect(save.history).toEqual([]);
   });
 
+  it("preserves draw outcomes in per-game stats and session history", () => {
+    const save = normalizeSave({
+      played: 3, wins: 1, draws: 1,
+      gameStats: { xo: { played: 3, wins: 1, draws: 1 } },
+      history: [{ id: "xo", playedAt: "2026-11-06T10:00:00.000Z", durationSeconds: 30, score: 30, won: false, draw: true }],
+    });
+    expect(save.draws).toBe(1);
+    expect(save.gameStats.xo?.draws).toBe(1);
+    expect(save.history[0].draw).toBe(true);
+  });
+
   it("validates game statistics and recent session history", () => {
     const save = normalizeSave({
       gameStats: {

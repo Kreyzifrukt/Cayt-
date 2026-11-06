@@ -5,7 +5,7 @@ import type { GameId } from "../types/game";
 import { RetroGame } from "./retro";
 import "../styles/retro.css";
 
-type Props = { id: GameId; onFinish: (id: GameId, score: number, won: boolean) => void };
+type Props = { id: GameId; onFinish: (id: GameId, score: number, won: boolean, draw?: boolean) => void };
 const ARCADE_GAMES: GameId[] = ["lights-out", "tap-blitz", "word-scramble"];
 const RETRO_GAMES: GameId[] = ["fifteen-puzzle", "sokoban", "reversi", "mastermind", "blackjack", "frogger", "match-three", "maze-runner"];
 const COLLECTION_GAMES: GameId[] = [

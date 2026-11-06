@@ -4,8 +4,8 @@ import { RotateCcw } from "lucide-react";
 import type { GameId } from "../types/game";
 import { createGemBoard, findGemMatches, resolveGemCascades } from "./matchThreeLogic";
 
-type Done = (score: number, won: boolean) => void;
-type Props = { id: Extract<GameId, "fifteen-puzzle" | "sokoban" | "reversi" | "mastermind" | "blackjack" | "frogger" | "match-three" | "maze-runner">; onFinish: (id: GameId, score: number, won: boolean) => void };
+type Done = (score: number, won: boolean, draw?: boolean) => void;
+type Props = { id: Extract<GameId, "fifteen-puzzle" | "sokoban" | "reversi" | "mastermind" | "blackjack" | "frogger" | "match-three" | "maze-runner">; onFinish: (id: GameId, score: number, won: boolean, draw?: boolean) => void };
 function Panel({ title, score, reset, children }: { title: string; score: string | number; reset: () => void; children: ReactNode }) {
   return <div className="engine collection-engine"><div className="game-toolbar"><span className="game-live"><i/> {title}</span><span className="game-score">SCORE <b>{score}</b></span></div>{children}<div className="collection-footer"><button className="secondary" onClick={reset}><RotateCcw size={14}/> RESTART</button><span>RETRO CLASSICS · LOCAL SESSION</span></div></div>;
 }
@@ -81,7 +81,7 @@ function flips(board: Disk[], index: number, player: Disk) {
 function Reversi({ done }: { done: Done }) {
   const initial=()=>{const board:Disk[]=Array(64).fill(0);board[27]=2;board[28]=1;board[35]=1;board[36]=2;return board;};
   const [board,setBoard]=useState(initial),[ended,setEnded]=useState(false),[message,setMessage]=useState("YOUR TURN");
-  const finish=(next:Disk[])=>{const mine=next.filter(value=>value===1).length,cpu=next.filter(value=>value===2).length;setBoard(next);setEnded(true);setMessage(mine>cpu?"YOU WIN":mine===cpu?"DRAW":"CPU WINS");done(mine*10,mine>cpu);};
+  const finish=(next:Disk[])=>{const mine=next.filter(value=>value===1).length,cpu=next.filter(value=>value===2).length;setBoard(next);setEnded(true);setMessage(mine>cpu?"YOU WIN":mine===cpu?"DRAW":"CPU WINS");done(mine*10,mine>cpu,mine===cpu);};
   const bestMove=(position:Disk[],player:Disk)=>{
     const options=position.flatMap((value,index)=>value===0&&flips(position,index,player).length?[index]:[]);
     options.sort((a,b)=>([0,7,56,63].includes(b)?100:0)+flips(position,b,player).length-(([0,7,56,63].includes(a)?100:0)+flips(position,a,player).length));
@@ -152,7 +152,7 @@ function newDeck():Card[]{return Array.from({length:52},(_,i)=>({rank:i%13+1,sui
 function value(cards:Card[]){let total=cards.reduce((s,c)=>s+(c.rank>10?10:c.rank===1?11:c.rank),0),aces=cards.filter(c=>c.rank===1).length;while(total>21&&aces){total-=10;aces--;}return total;}
 function Blackjack({done}:{done:Done}){
   const [deck,setDeck]=useState<Card[]>([]),[player,setPlayer]=useState<Card[]>([]),[dealer,setDealer]=useState<Card[]>([]),[active,setActive]=useState(false),[status,setStatus]=useState("DEAL TO START"),[ended,setEnded]=useState(false);
-  const finish=(hand:Card[],house:Card[],remaining:Card[])=>{const d=[...house],cards=[...remaining];while(value(d)<17&&cards.length)d.push(cards.shift()!);const p=value(hand),h=value(d),won=p<=21&&(h>21||p>h);setDealer(d);setDeck(cards);setActive(false);setEnded(true);setStatus(p===h?"PUSH · DRAW":won?"YOU WIN":"DEALER WINS");done(won?p*20:20,won);};
+  const finish=(hand:Card[],house:Card[],remaining:Card[])=>{const d=[...house],cards=[...remaining];while(value(d)<17&&cards.length)d.push(cards.shift()!);const p=value(hand),h=value(d),won=p<=21&&(h>21||p>h);setDealer(d);setDeck(cards);setActive(false);setEnded(true);setStatus(p===h?"PUSH · DRAW":won?"YOU WIN":"DEALER WINS");done(won?p*20:20,won,p<=21&&h<=21&&p===h);};
   const start=()=>{const cards=newDeck(),p=cards.slice(0,2),d=cards.slice(2,4);setDeck(cards.slice(4));setPlayer(p);setDealer(d);setActive(true);setEnded(false);setStatus("YOUR MOVE");if(value(d)===21){finish(p,d,cards.slice(4));}else if(value(p)===21){setActive(false);setEnded(true);setStatus("BLACKJACK");done(500,true);}};
   const hit=()=>{if(!active||!deck.length)return;const hand=[...player,deck[0]],rest=deck.slice(1);setPlayer(hand);setDeck(rest);if(value(hand)>21){setActive(false);setEnded(true);setStatus("BUST");done(value(hand),false);}else if(value(hand)===21)finish(hand,dealer,rest);};
   const reset=()=>{setDeck([]);setPlayer([]);setDealer([]);setActive(false);setEnded(false);setStatus("DEAL TO START");};
@@ -226,7 +226,7 @@ function MazeRunner({done}:{done:Done}){
 }
 
 export function RetroGame({id,onFinish}:Props){
-  const done=useCallback((score:number,won:boolean)=>onFinish(id,score,won),[id,onFinish]);
+  const done=useCallback((score:number,won:boolean,draw=false)=>onFinish(id,score,won,draw),[id,onFinish]);
   switch(id){
     case "fifteen-puzzle":return <Fifteen done={done}/>;
     case "sokoban":return <Sokoban done={done}/>;

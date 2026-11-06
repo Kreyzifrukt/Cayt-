@@ -151,3 +151,5 @@ button,.gem,.mine-cell,.tap-cell,.letter-tile{touch-action:manipulation}
 @keyframes result-enter{0%{opacity:0;transform:translateY(7px) scale(.985)}100%{opacity:1;transform:translateY(0) scale(1)}}.result{animation:result-enter .22s ease-out both}
 @keyframes achievement-unlock{0%{opacity:.6;transform:scale(.98)}70%{transform:scale(1.015)}100%{opacity:1;transform:scale(1)}}.achievement.unlocked{animation:achievement-unlock .3s ease-out both}
 @media(prefers-reduced-motion:reduce){.result,.achievement.unlocked,.xp-earned{animation:none}}
+
+.session-result-dot.draw{color:var(--muted);border-color:var(--line)}.session-draw{color:var(--muted)}

@@ -3,8 +3,8 @@ import { Activity,Play,RotateCcw } from "lucide-react";
 import { Memory,XO,Reflex } from "./extra";
 import type { GameId } from "../types/game";
 export type { GameId } from "../types/game";
-type Props={id:GameId;onFinish:(id:GameId,score:number,won:boolean)=>void};
-type CallbackProps={onFinish:(id:GameId,score:number,won:boolean)=>void};
+type Props={id:GameId;onFinish:(id:GameId,score:number,won:boolean,draw?:boolean)=>void};
+type CallbackProps={onFinish:(id:GameId,score:number,won:boolean,draw?:boolean)=>void};
 export function ClassicGame({id,onFinish}:Props){if(id==="snake")return <Snake onFinish={onFinish}/>;if(id==="2048")return <Puzzle onFinish={onFinish}/>;if(id==="memory")return <Memory onFinish={onFinish}/>;if(id==="xo")return <XO onFinish={onFinish}/>;return <Reflex onFinish={onFinish}/>;}
 function Toolbar({label,score}:{label:string;score:number}){return <div className="game-toolbar"><span className="game-live"><i/> {label}</span><span className="game-score">SCORE <b>{score}</b></span></div>;}
 type Point={x:number;y:number};

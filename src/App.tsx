@@ -44,13 +44,13 @@ export default function App() {
     };
   },[save.musicEnabled]);
   useEffect(()=>{setArcadeMusicVolume(save.musicVolume);},[save.musicVolume]);
-  const finish=(id:GameId,score:number,won:boolean)=>{
+  const finish=(id:GameId,score:number,won:boolean,draw=false)=>{
     const finishedAt=Date.now();
     const startedAt=runStartedAt.current;
     if(startedAt===null)return;
     runStartedAt.current=null;
     awaitingRestart.current=true;
-    const session={id,playedAt:new Date(finishedAt).toISOString(),durationSeconds:Math.max(0,Math.round((finishedAt-startedAt)/1000)),score:Math.max(0,score),won};
+    const session={id,playedAt:new Date(finishedAt).toISOString(),durationSeconds:Math.max(0,Math.round((finishedAt-startedAt)/1000)),score:Math.max(0,score),won,draw};
     const currentDailyDate=save.dailyDate===todayKey();
     const nextDailyRuns=(currentDailyDate?save.dailyRuns:0)+1;
     const dailyReward=nextDailyRuns===3&&!(currentDailyDate&&save.dailyClaimed);
@@ -64,11 +64,12 @@ export default function App() {
       const reward=runs===3&&!fresh.dailyClaimed;
       return {...fresh,xp:fresh.xp+Math.max(5,Math.round(score/5)+10)+(reward?50:0),
         coins:fresh.coins+Math.max(1,Math.floor(score/100))+(reward?25:0),
-        played:fresh.played+1,wins:fresh.wins+(won?1:0),dailyRuns:runs,dailyClaimed:fresh.dailyClaimed||reward,
+        played:fresh.played+1,wins:fresh.wins+(won?1:0),draws:fresh.draws+(draw?1:0),dailyRuns:runs,dailyClaimed:fresh.dailyClaimed||reward,
         best:{...fresh.best,[id]:Math.max(fresh.best[id]||0,score)},
         gameStats:{...fresh.gameStats,[id]:{
           played:(fresh.gameStats[id]?.played||0)+1,
           wins:(fresh.gameStats[id]?.wins||0)+(won?1:0),
+          draws:(fresh.gameStats[id]?.draws||0)+(draw?1:0),
           totalDurationSeconds:(fresh.gameStats[id]?.totalDurationSeconds||0)+session.durationSeconds,
           bestScore:Math.max(fresh.gameStats[id]?.bestScore||0,score),
         }},
