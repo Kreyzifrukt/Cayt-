@@ -81,7 +81,7 @@ A source review is not a substitute for playing the games in a browser. The curr
 ## Dependency security and maintenance
 
 - Updated Vite to 6.4.5, including the patched v6 release for GHSA-8g5g-mxqh-grgj.
-- Updated Vitest to 4.1.12. The previous 2.x line included affected releases for GHSA-8gvc-j273-4wm5, and versions before 4.1.12 were affected by GHSA-qxg6-89mg-rqv8.
+- Updated Vitest to 5.1.0. The previous 2.x line included affected releases for GHSA-8gvc-j273-4wm5, and versions before the patched 4.1.12 / 5.0.3 releases were affected by GHSA-qxg6-89mg-rqv8.
 - Added weekly Dependabot checks for npm dependencies and GitHub Actions.
 - A committed npm lockfile is still missing. CI currently resolves compatible versions during npm install, so dependency resolution is not yet fully reproducible. A lockfile must be generated and committed before switching CI to npm ci.
 
