@@ -21,6 +21,7 @@ export default function App() {
   const level=Math.floor(save.xp/250)+1;
   useEffect(()=>{if(save.dailyDate!==todayKey())setSave(s=>({...s,dailyDate:todayKey(),dailyRuns:0,dailyClaimed:false}));},[save.dailyDate,setSave]);
   const finish=(id:GameId,score:number,won:boolean)=>{
+    if(save.sound){try{const context=new AudioContext();const oscillator=context.createOscillator();const gain=context.createGain();oscillator.type="sine";oscillator.frequency.value=won?880:260;gain.gain.setValueAtTime(0.035,context.currentTime);gain.gain.exponentialRampToValueAtTime(0.001,context.currentTime+0.18);oscillator.connect(gain);gain.connect(context.destination);oscillator.start();oscillator.stop(context.currentTime+0.18);oscillator.onended=()=>void context.close();}catch{/* Audio is optional and may be unavailable. */}}
     setSave(s=>{
       const fresh=s.dailyDate===todayKey()?s:{...s,dailyDate:todayKey(),dailyRuns:0,dailyClaimed:false};
       const runs=fresh.dailyRuns+1;
