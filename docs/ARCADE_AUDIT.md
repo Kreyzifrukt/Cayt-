@@ -8,39 +8,45 @@ A source review is not a substitute for playing the games in a browser. The curr
 
 ## Game inventory
 
-| Game | Source-level review | Interactive browser test |
+| Game | Source-level review | Automated browser mount smoke test |
 |---|---|---|
-| Snake | Collision, food placement, terminal state reviewed; full-board completion fixed | Pending |
-| 2048 | Merge, spawn and no-move logic extracted into tested helpers; continued play after reaching 2048 restored | Pending |
-| Memory | Pair matching and shuffle reviewed; uses Fisher–Yates and blocks rapid third-card selections | Pending |
-| XO | Win/draw detection and CPU move selection reviewed | Pending |
-| Reflex | Reaction timer and false-start flow reviewed | Pending |
-| Lights Out | Board generation and cross-toggle logic reviewed | Pending |
-| Tap Blitz | Timer, keyboard and target changes reviewed | Pending |
-| Word Scramble | Selection, attempt reset and scoring reviewed | Pending |
-| Minesweeper | Safe first click, flood reveal, flags and terminal input reviewed; flag limit and post-game input fixed | Pending |
-| Tetris | Seven standard tetrominoes, rotation, wall kicks, collision and row clearing reviewed | Pending |
-| Breakout | Paddle/ball bounds and brick coordinates reviewed; boundary reflection clamped and paddle reach corrected | Pending |
-| Neon Pong | Ball collision, score and CPU movement reviewed | Pending |
-| Simon Says | Sequence playback and input timing reviewed; flash spacing and timer cleanup fixed | Pending |
-| Hangman | Duplicate-letter counting and terminal state reviewed | Pending |
-| Connect Four | Column legality, win detection and CPU immediate win/block reviewed | Pending |
-| Whack-a-Mole | Timer and target selection reviewed; repeated same-target exploit fixed | Pending |
-| Math Sprint | Timer, answer parsing and score updates reviewed | Pending |
-| Color Clash | Ink/word selection, timer and one-time completion reviewed | Pending |
-| Pattern Recall | Sequence is shown in ordered flashes; all reveal timers clear on reset/unmount | Pending |
-| Higher or Lower | Comparison rules reviewed; equal cards no longer count as higher/lower | Pending |
-| Typing Rush | Input prefix validation and timer completion reviewed | Pending |
-| Number Hunt | Completion path reviewed; terminal state and replay UI fixed | Pending |
-| Mini Sudoku | Puzzle/solution consistency reviewed; incomplete grids can no longer be submitted | Pending |
-| 15-Puzzle | Legal-move shuffle and solved-state detection reviewed | Pending |
-| Sokoban | Wall/box/goal logic reviewed; current level confirmed solvable by state search | Pending |
-| Reversi | Legal flips, pass handling and end detection reviewed; consecutive CPU turns after a player pass fixed | Pending |
-| Mastermind | Duplicate-color feedback and attempt limit reviewed | Pending |
-| Blackjack | Ace valuation, dealer stand threshold and natural blackjack comparison reviewed | Pending |
-| Frogger | Lane movement, lives and crossing completion reviewed; moving-car collisions fixed | Pending |
-| Gem Match | Adjacent swap, match scan, refill, cascades and move accounting reviewed; dead boards after refills are reshuffled | Pending |
-| Maze Runner | Wall boundaries, key/exit conditions and reachability reviewed; exit is reachable | Pending |
+| Snake | Collision, food placement, terminal state reviewed; full-board completion fixed | Covered by CI mount smoke test |
+| 2048 | Merge, spawn and no-move logic extracted into tested helpers; continued play after reaching 2048 restored | Covered by CI mount smoke test |
+| Memory | Pair matching and shuffle reviewed; uses Fisher–Yates and blocks rapid third-card selections | Covered by CI mount smoke test |
+| XO | Win/draw detection and CPU move selection reviewed | Covered by CI mount smoke test |
+| Reflex | Reaction timer and false-start flow reviewed | Covered by CI mount smoke test |
+| Lights Out | Board generation and cross-toggle logic reviewed | Covered by CI mount smoke test |
+| Tap Blitz | Timer, keyboard and target changes reviewed | Covered by CI mount smoke test |
+| Word Scramble | Selection, attempt reset and scoring reviewed | Covered by CI mount smoke test |
+| Minesweeper | Safe first click, flood reveal, flags and terminal input reviewed; flag limit and post-game input fixed | Covered by CI mount smoke test |
+| Tetris | Seven standard tetrominoes, rotation, wall kicks, collision and row clearing reviewed | Covered by CI mount smoke test |
+| Breakout | Paddle/ball bounds and brick coordinates reviewed; boundary reflection clamped and paddle reach corrected | Covered by CI mount smoke test |
+| Neon Pong | Ball collision, score and CPU movement reviewed | Covered by CI mount smoke test |
+| Simon Says | Sequence playback and input timing reviewed; flash spacing and timer cleanup fixed | Covered by CI mount smoke test |
+| Hangman | Duplicate-letter counting and terminal state reviewed | Covered by CI mount smoke test |
+| Connect Four | Column legality, win detection and CPU immediate win/block reviewed | Covered by CI mount smoke test |
+| Whack-a-Mole | Timer and target selection reviewed; repeated same-target exploit fixed | Covered by CI mount smoke test |
+| Math Sprint | Timer, answer parsing and score updates reviewed | Covered by CI mount smoke test |
+| Color Clash | Ink/word selection, timer and one-time completion reviewed | Covered by CI mount smoke test |
+| Pattern Recall | Sequence is shown in ordered flashes; all reveal timers clear on reset/unmount | Covered by CI mount smoke test |
+| Higher or Lower | Comparison rules reviewed; equal cards no longer count as higher/lower | Covered by CI mount smoke test |
+| Typing Rush | Input prefix validation and timer completion reviewed | Covered by CI mount smoke test |
+| Number Hunt | Completion path reviewed; terminal state and replay UI fixed | Covered by CI mount smoke test |
+| Mini Sudoku | Puzzle/solution consistency reviewed; incomplete grids can no longer be submitted | Covered by CI mount smoke test |
+| 15-Puzzle | Legal-move shuffle and solved-state detection reviewed | Covered by CI mount smoke test |
+| Sokoban | Wall/box/goal logic reviewed; current level confirmed solvable by state search | Covered by CI mount smoke test |
+| Reversi | Legal flips, pass handling and end detection reviewed; consecutive CPU turns after a player pass fixed | Covered by CI mount smoke test |
+| Mastermind | Duplicate-color feedback and attempt limit reviewed | Covered by CI mount smoke test |
+| Blackjack | Ace valuation, dealer stand threshold and natural blackjack comparison reviewed | Covered by CI mount smoke test |
+| Frogger | Lane movement, lives and crossing completion reviewed; moving-car collisions fixed | Covered by CI mount smoke test |
+| Gem Match | Adjacent swap, match scan, refill, cascades and move accounting reviewed; dead boards after refills are reshuffled | Covered by CI mount smoke test |
+| Maze Runner | Wall boundaries, key/exit conditions and reachability reviewed; exit is reachable | Covered by CI mount smoke test |
+
+## Automated browser smoke coverage
+
+- Playwright mounts all 31 game components through the real Vite development server and fails on uncaught browser runtime errors.
+- A mobile viewport smoke test opens Tetris at 390×844 and checks for horizontal page overflow.
+- These checks verify rendering and basic responsive layout only. They do not replace complete gameplay, keyboard/touch interaction, scoring, or audio playthroughs on real devices.
 
 ## Shared systems
 
@@ -88,7 +94,7 @@ A source review is not a substitute for playing the games in a browser. The curr
 ## Remaining work before audit sign-off
 
 1. Expand targeted unit tests for pure rules and reward edge cases across all games.
-2. Run full keyboard, pointer and touch playthroughs for all 31 games.
+2. Complete manual keyboard, pointer and touch playthroughs for all 31 games; the automated smoke test only verifies mounting and one mobile viewport.
 3. Verify victory, loss, draw, restart, repeated sessions, and reward accounting for each game.
 4. Check mobile viewport sizes, touch targets, scrolling, and accidental page gestures.
 5. Review remaining design limits after the Tetris rotation and seven-piece set are exercised in a browser.
