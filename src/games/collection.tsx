@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { RotateCcw } from "lucide-react";
 import type { GameId } from "../types/game";
+import { randomDifferentIndex } from "./gameUtils";
 
 type Props = { id: Extract<GameId, "minesweeper" | "tetris" | "breakout" | "pong" | "simon" | "hangman" | "connect-four" | "whack-a-mole" | "math-sprint" | "color-clash" | "pattern-recall" | "higher-lower" | "typing-rush" | "number-hunt" | "mini-sudoku">; onFinish: (id: GameId, score: number, won: boolean) => void };
 function Frame({ title, score, children, reset }: { title: string; score: number | string; children: ReactNode; reset: () => void }) {
@@ -117,7 +118,7 @@ function ConnectFour({done}:{done:(s:number,w:boolean)=>void}) {
 function Whack({done}:{done:(s:number,w:boolean)=>void}) {
  const [time,setTime]=useState(20);const [target,setTarget]=useState(4);const [score,setScore]=useState(0);const [playing,setPlaying]=useState(false);
  useEffect(()=>{if(!playing)return;const t=window.setInterval(()=>setTime(v=>{if(v<=1){setPlaying(false);done(score*20,score>=10);return 0;}return v-1;}),1000);return()=>window.clearInterval(t);},[playing,score,done]);
- return <Frame title="WHACK-A-MOLE · 20 SECONDS" score={score} reset={()=>{setTime(20);setScore(0);setPlaying(false);setTarget(4);}}><div className="tap-status"><span>TIME LEFT</span><b>{time}s</b></div><div className="tap-board">{Array.from({length:9},(_,i)=><button key={i} className={playing&&target===i?"tap-cell is-target":"tap-cell"} onClick={()=>{if(playing&&i===target){setScore(s=>s+1);setTarget(Math.floor(Math.random()*9));}}} disabled={!playing}/>)}</div>{!playing&&<div className="result"><b>{time===0?`FINAL SCORE: ${score}`:"HIT THE MOLE AS FAST AS YOU CAN"}</b><button onClick={()=>{setTime(20);setScore(0);setPlaying(true);}}> {time===0?"PLAY AGAIN":"START"} </button></div>}</Frame>;
+ return <Frame title="WHACK-A-MOLE · 20 SECONDS" score={score} reset={()=>{setTime(20);setScore(0);setPlaying(false);setTarget(4);}}><div className="tap-status"><span>TIME LEFT</span><b>{time}s</b></div><div className="tap-board">{Array.from({length:9},(_,i)=><button key={i} className={playing&&target===i?"tap-cell is-target":"tap-cell"} onClick={()=>{if(playing&&i===target){setScore(s=>s+1);setTarget(v=>randomDifferentIndex(v,9));}}} disabled={!playing}/>)}</div>{!playing&&<div className="result"><b>{time===0?`FINAL SCORE: ${score}`:"HIT THE MOLE AS FAST AS YOU CAN"}</b><button onClick={()=>{setTime(20);setScore(0);setPlaying(true);}}> {time===0?"PLAY AGAIN":"START"} </button></div>}</Frame>;
 }
 function MathSprint({done}:{done:(s:number,w:boolean)=>void}) {
  const [time,setTime]=useState(30);const [score,setScore]=useState(0);const [a,setA]=useState(7);const [b,setB]=useState(4);const [answer,setAnswer]=useState("");const [playing,setPlaying]=useState(false);

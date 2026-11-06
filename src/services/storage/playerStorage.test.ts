@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { GAME_IDS, normalizeSave } from "./playerStorage";
+import { randomDifferentIndex } from "../../games/gameUtils";
 
 describe("player save normalization", () => {
   it("keeps progress from the previous eight-game save format", () => {
@@ -68,6 +69,23 @@ describe("player save normalization", () => {
     expect(save.gameStats.tetris).toEqual({ played: 0, wins: 0, totalDurationSeconds: 0, bestScore: 0 });
     expect(save.history).toHaveLength(1);
     expect(save.history[0].id).toBe("snake");
+  });
+
+  it("clamps and restores the effects volume setting", () => {
+    expect(normalizeSave({ effectsVolume: 0.35 }).effectsVolume).toBe(0.35);
+    expect(normalizeSave({ effectsVolume: 8 }).effectsVolume).toBe(1);
+    expect(normalizeSave({ effectsVolume: -2 }).effectsVolume).toBe(0);
+    expect(normalizeSave({ effectsVolume: "loud" }).effectsVolume).toBe(0.65);
+  });
+
+  it("chooses a different valid target for Whack-a-Mole", () => {
+    for (let current = 0; current < 9; current += 1) {
+      const next = randomDifferentIndex(current, 9, () => 0.5);
+      expect(next).toBeGreaterThanOrEqual(0);
+      expect(next).toBeLessThan(9);
+      expect(next).not.toBe(current);
+    }
+    expect(randomDifferentIndex(0, 1, () => 0.5)).toBe(0);
   });
 
   it("registers exactly 31 games", () => {
