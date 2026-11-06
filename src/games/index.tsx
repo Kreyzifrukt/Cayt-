@@ -1,29 +1,11 @@
-import { useCallback,useEffect,useRef,useState } from "react";
-import { Activity,Play,RotateCcw } from "lucide-react";
-import { Memory,XO,Reflex } from "./extra";
+import { ClassicGame } from "./classics";
+import { ArcadeGame } from "./arcade";
 import type { GameId } from "../types/game";
-export type { GameId } from "../types/game";
-type Props={id:GameId;onFinish:(id:GameId,score:number,won:boolean)=>void};
-type CallbackProps={onFinish:(id:GameId,score:number,won:boolean)=>void};
-export function Game({id,onFinish}:Props){if(id==="snake")return <Snake onFinish={onFinish}/>;if(id==="2048")return <Puzzle onFinish={onFinish}/>;if(id==="memory")return <Memory onFinish={onFinish}/>;if(id==="xo")return <XO onFinish={onFinish}/>;return <Reflex onFinish={onFinish}/>;}
-function Toolbar({label,score}:{label:string;score:number}){return <div className="game-toolbar"><span className="game-live"><i/> {label}</span><span className="game-score">SCORE <b>{score}</b></span></div>;}
-type Point={x:number;y:number};
-function Snake({onFinish}:CallbackProps){
- const [body,setBody]=useState<Point[]>([{x:7,y:8},{x:6,y:8},{x:5,y:8}]);const [food,setFood]=useState<Point>({x:11,y:8});const [dir,setDir]=useState<Point>({x:1,y:0});const [running,setRunning]=useState(false);const [over,setOver]=useState(false);const [score,setScore]=useState(0);const ref=useRef(dir);
- useEffect(()=>{ref.current=dir;},[dir]);
- const reset=()=>{setBody([{x:7,y:8},{x:6,y:8},{x:5,y:8}]);setFood({x:11,y:8});setDir({x:1,y:0});ref.current={x:1,y:0};setScore(0);setOver(false);setRunning(false);};
- useEffect(()=>{const h=(e:KeyboardEvent)=>{const m:Record<string,Point>={ArrowUp:{x:0,y:-1},w:{x:0,y:-1},ArrowDown:{x:0,y:1},s:{x:0,y:1},ArrowLeft:{x:-1,y:0},a:{x:-1,y:0},ArrowRight:{x:1,y:0},d:{x:1,y:0}};const n=m[e.key];if(n){e.preventDefault();if(n.x!==-ref.current.x||n.y!==-ref.current.y)setDir(n);setRunning(true);}};window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);},[]);
- const spawn=(b:Point[])=>{let p:Point;do{p={x:Math.floor(Math.random()*16),y:Math.floor(Math.random()*16)};}while(b.some(v=>v.x===p.x&&v.y===p.y));return p;};
- useEffect(()=>{if(!running||over)return;const t=window.setInterval(()=>setBody(old=>{const head={x:old[0].x+ref.current.x,y:old[0].y+ref.current.y};const ate=head.x===food.x&&head.y===food.y;const check=ate?old:old.slice(0,-1);if(head.x<0||head.x>15||head.y<0||head.y>15||check.some(p=>p.x===head.x&&p.y===head.y)){setRunning(false);setOver(true);onFinish("snake",score,false);return old;}const next=[head,...old].slice(0,ate?old.length+1:old.length);if(ate){setScore(s=>s+10);setFood(spawn(next));}return next;}),Math.max(75,150-score));return()=>window.clearInterval(t);},[running,over,food,score,onFinish]);
- return <div className="engine"><Toolbar label={over?"RUN ENDED":running?"IN PROGRESS":"READY TO PLAY"} score={score}/><div className="snake-board">{Array.from({length:256},(_,i)=>{const x=i%16,y=Math.floor(i/16),n=body.findIndex(p=>p.x===x&&p.y===y);return <div key={i} className={`snake-cell ${n===0?"snake-head":n>0?"snake-body":food.x===x&&food.y===y?"snake-food":""}`}/>;})}</div>{!running&&<div className="game-overlay"><div className="overlay-panel"><Activity className="overlay-icon"/><h2>{over?"RUN COMPLETE":"READY?"}</h2><p>{over?`You scored ${score} points. Try again.`:"Collect energy dots. Avoid walls and your own trail."}</p><button className="primary" onClick={over?reset:()=>setRunning(true)}>{over?<RotateCcw/>:<Play/>}{over?"PLAY AGAIN":"START RUN"}</button></div></div>}</div>;
-}
-type Board=number[];
-const spawn=(b:Board):Board=>{const empty=b.map((v,i)=>v===0?i:-1).filter(i=>i>=0);if(!empty.length)return b;const n=[...b];n[empty[Math.floor(Math.random()*empty.length)]]=Math.random()<.9?2:4;return n;};
-function merge(line:number[]){const a=line.filter(Boolean);let score=0;for(let i=0;i<a.length-1;i++)if(a[i]===a[i+1]){a[i]*=2;score+=a[i];a.splice(i+1,1);}return{line:[...a,...Array(4-a.length).fill(0)],score};}
-function Puzzle({onFinish}:CallbackProps){
- const [board,setBoard]=useState<Board>(()=>spawn(spawn(Array(16).fill(0))));const [score,setScore]=useState(0);const [status,setStatus]=useState<"playing"|"won"|"over">("playing");
- const move=useCallback((dir:string)=>{if(status!=="playing")return;const next=Array(16).fill(0) as Board;let gained=0;for(let n=0;n<4;n++){const ids=Array.from({length:4},(_,i)=>dir==="left"?n*4+i:dir==="right"?n*4+3-i:dir==="up"?i*4+n:(3-i)*4+n);const r=merge(ids.map(i=>board[i]));gained+=r.score;ids.forEach((id,i)=>next[id]=r.line[i]);}if(next.every((v,i)=>v===board[i]))return;const b=spawn(next),total=score+gained;setBoard(b);setScore(total);if(b.includes(2048)){setStatus("won");onFinish("2048",total,true);}else if(!b.includes(0)&&!b.some((v,i)=>i%4<3&&v===b[i+1]||i<12&&v===b[i+4])){setStatus("over");onFinish("2048",total,false);}},[board,status,score,onFinish]);
- useEffect(()=>{const h=(e:KeyboardEvent)=>{const m:Record<string,string>={ArrowLeft:"left",a:"left",ArrowRight:"right",d:"right",ArrowUp:"up",w:"up",ArrowDown:"down",s:"down"};if(m[e.key]){e.preventDefault();move(m[e.key]);}};window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);},[move]);
- const reset=()=>{setBoard(spawn(spawn(Array(16).fill(0))));setScore(0);setStatus("playing");};
- return <div className="engine"><Toolbar label={status==="playing"?"MERGE THE TILES":status==="won"?"2048 REACHED":"NO MORE MOVES"} score={score}/><div className="board-2048">{board.map((v,i)=><div key={i} className={`tile tile-${Math.min(v,2048)}`}>{v||""}</div>)}</div><div className="game-action-row"><button className="secondary" onClick={reset}><RotateCcw size={14}/> NEW GAME</button><span>ARROWS / WASD TO MOVE</span></div>{status!=="playing"&&<div className="result"><b>{status==="won"?"LEGENDARY TILE UNLOCKED.":"NO MORE MOVES."}</b><button onClick={reset}>PLAY AGAIN</button></div>}</div>;
+
+type Props = { id: GameId; onFinish: (id: GameId, score: number, won: boolean) => void };
+const NEW_GAMES: GameId[] = ["lights-out", "tap-blitz", "word-scramble"];
+
+export function Game({ id, onFinish }: Props) {
+  if (NEW_GAMES.includes(id)) return <ArcadeGame id={id} onFinish={onFinish} />;
+  return <ClassicGame id={id} onFinish={onFinish} />;
 }
