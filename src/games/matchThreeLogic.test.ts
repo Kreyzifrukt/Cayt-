@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createGemBoard, findGemMatches, resolveGemCascades } from "./matchThreeLogic";
+import { createGemBoard, findGemMatches, hasPossibleGemMove, resolveGemCascades } from "./matchThreeLogic";
 
 describe("Gem Match logic", () => {
   it("generates a board without automatic matches", () => {
@@ -7,6 +7,13 @@ describe("Gem Match logic", () => {
     expect(board).toHaveLength(7);
     expect(board.every((row) => row.length === 7)).toBe(true);
     expect(findGemMatches(board).size).toBe(0);
+    expect(hasPossibleGemMove(board)).toBe(true);
+  });
+
+  it("provides a playable fallback when the random generator repeats a fixed value", () => {
+    const board = createGemBoard(() => 0.42);
+    expect(findGemMatches(board).size).toBe(0);
+    expect(hasPossibleGemMove(board)).toBe(true);
   });
 
   it("finds horizontal and vertical runs without double-counting intersections", () => {

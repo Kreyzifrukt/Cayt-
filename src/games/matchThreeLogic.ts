@@ -41,6 +41,32 @@ export function findGemMatches(grid: GemGrid): Set<number> {
   return matches;
 }
 
+export function hasPossibleGemMove(grid: GemGrid): boolean {
+  const rows = grid.length;
+  const columns = grid[0]?.length ?? 0;
+  for (let row = 0; row < rows; row += 1) {
+    for (let column = 0; column < columns; column += 1) {
+      for (const [nextRow, nextColumn] of [[row, column + 1], [row + 1, column]]) {
+        if (nextRow >= rows || nextColumn >= columns) continue;
+        [grid[row][column], grid[nextRow][nextColumn]] = [grid[nextRow][nextColumn], grid[row][column]];
+        const valid = findGemMatches(grid).size > 0;
+        [grid[row][column], grid[nextRow][nextColumn]] = [grid[nextRow][nextColumn], grid[row][column]];
+        if (valid) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function createFallbackGemBoard(): GemGrid {
+  const grid = Array.from({ length: GRID_SIZE }, (_, row) =>
+    Array.from({ length: GRID_SIZE }, (_, column) => (row * 2 + column) % GEM_TYPES),
+  );
+  grid[0][2] = 0;
+  grid[1][1] = 0;
+  return grid;
+}
+
 export function createGemBoard(random = Math.random): GemGrid {
   const grid = Array.from({ length: GRID_SIZE }, () => Array<number>(GRID_SIZE).fill(-1));
 
@@ -59,7 +85,7 @@ export function createGemBoard(random = Math.random): GemGrid {
     }
   }
 
-  return grid;
+  return hasPossibleGemMove(grid) ? grid : createFallbackGemBoard();
 }
 
 export function resolveGemCascades(
