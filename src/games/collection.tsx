@@ -1,0 +1,146 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { RotateCcw } from "lucide-react";
+import type { GameId } from "../types/game";
+
+type Props = { id: Extract<GameId, "minesweeper" | "tetris" | "breakout" | "pong" | "simon" | "hangman" | "connect-four" | "whack-a-mole" | "math-sprint" | "color-clash" | "pattern-recall" | "higher-lower" | "typing-rush" | "number-hunt" | "mini-sudoku">; onFinish: (id: GameId, score: number, won: boolean) => void };
+function Frame({ title, score, children, reset }: { title: string; score: number | string; children: ReactNode; reset: () => void }) {
+  return <div className="engine collection-engine"><div className="game-toolbar"><span className="game-live"><i/> {title}</span><span className="game-score">SCORE <b>{score}</b></span></div>{children}<div className="collection-footer"><button className="secondary" onClick={reset}><RotateCcw size={14}/> RESTART</button><span>NEON ARCADE · LOCAL SESSION</span></div></div>;
+}
+function Minesweeper({ done }: { done: (s:number,w:boolean)=>void }) {
+  const createMines=()=>{const a=new Set<number>();while(a.size<10)a.add(Math.floor(Math.random()*64));return a;};
+  const [mines,setMines]=useState<Set<number>>(createMines);const [open,setOpen]=useState<number[]>([]);const [flags,setFlags]=useState<number[]>([]);const [lost,setLost]=useState(false);const [complete,setComplete]=useState(false);const [flagMode,setFlagMode]=useState(false);const [firstMove,setFirstMove]=useState(true);
+  const neighbors=(i:number)=>Array.from({length:64},(_,n)=>n).filter(n=>Math.abs(n%8-i%8)<=1&&Math.abs(Math.floor(n/8)-Math.floor(i/8))<=1&&n!==i);
+  const count=(i:number,field:Set<number>=mines)=>neighbors(i).filter(n=>field.has(n)).length;
+  const reveal=(i:number)=>{if(lost||complete||open.includes(i)||flags.includes(i))return;let activeMines=mines;if(firstMove){setFirstMove(false);if(mines.has(i)){activeMines=new Set(mines);activeMines.delete(i);let replacement=Math.floor(Math.random()*64);while(replacement===i||activeMines.has(replacement))replacement=Math.floor(Math.random()*64);activeMines.add(replacement);setMines(activeMines);}}if(activeMines.has(i)){setLost(true);setOpen([...open,i]);done(open.length*10,false);return;}const next=new Set(open);const flood=(n:number)=>{if(next.has(n)||activeMines.has(n))return;next.add(n);if(count(n,activeMines)===0)neighbors(n).forEach(flood);};flood(i);setOpen([...next]);if(next.size===54){setComplete(true);done(1000,true);}};
+  const reset=()=>{setMines(createMines());setOpen([]);setFlags([]);setLost(false);setComplete(false);setFlagMode(false);setFirstMove(true);};
+  return <Frame title={lost?"MINE DETONATED":"MINESWEEPER · 10 MINES"} score={open.length} reset={reset}><div className="game-action-row"><button className="secondary" onClick={()=>setFlagMode(v=>!v)}>{flagMode?"FLAG MODE ON":"FLAG MODE OFF"}</button><span>10 MINES · 8×8</span></div><div className="mine-grid">{Array.from({length:64},(_,i)=><button key={i} className={open.includes(i)?"mine-cell revealed": "mine-cell"} onClick={()=>{if(flagMode){setFlags(v=>v.includes(i)?v.filter(x=>x!==i):[...v,i]);}else reveal(i);}} onContextMenu={e=>{e.preventDefault();setFlags(v=>v.includes(i)?v.filter(x=>x!==i):[...v,i]);}}>{open.includes(i)?(mines.has(i)?"✹":count(i)||""):flags.includes(i)?"⚑":""}</button>)}</div><p className="collection-note">Откройте все безопасные клетки. Правый клик или режим флага ставит отметку.</p>{lost&&<div className="result"><b>МИНА! Попробуйте ещё раз.</b></div>}{complete&&<div className="result"><b>FIELD CLEARED. NICE WORK.</b></div>}</Frame>;
+}
+const SHAPES=[[1,1,1,1],[1,1,0,0,1,1],[0,1,0,1,1,1],[1,1,1,0,1,0],[1,1,0,1,1,0]];
+function Tetris({ done }: { done:(s:number,w:boolean)=>void }) {
+ const [board,setBoard]=useState<number[][]>(()=>Array.from({length:16},()=>Array(10).fill(0)));const [piece,setPiece]=useState({x:3,y:0,shape:0});const [score,setScore]=useState(0);const [over,setOver]=useState(false);
+ const cells=SHAPES[piece.shape];const blocks=()=>cells.flatMap((v,i)=>v?[[piece.x+i%4,piece.y+Math.floor(i/4)]]:[]);
+ const tick=()=>{const b=blocks();if(b.some(([x,y])=>y+1>=16||board[y+1]?.[x])){const n=board.map(r=>[...r]);b.forEach(([x,y])=>{if(y>=0)n[y][x]=1;});const kept=n.filter(r=>r.some(v=>!v));const cleared=16-kept.length;while(kept.length<16)kept.unshift(Array(10).fill(0));setBoard(kept);setScore(s=>s+cleared*100);if(kept[0].some(Boolean)){setOver(true);done(score+cleared*100,false);}else setPiece({x:3,y:0,shape:Math.floor(Math.random()*SHAPES.length)});}else setPiece(p=>({...p,y:p.y+1}));};
+ useEffect(()=>{if(over)return;const t=window.setInterval(tick,650);return()=>window.clearInterval(t);});
+ useEffect(()=>{const h=(e:KeyboardEvent)=>{if(e.key==="ArrowLeft")setPiece(p=>({...p,x:Math.max(0,p.x-1)}));if(e.key==="ArrowRight")setPiece(p=>({...p,x:Math.min(6,p.x+1)}));if(e.key==="ArrowDown")tick();};window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);});
+ const reset=()=>{setBoard(Array.from({length:16},()=>Array(10).fill(0)));setPiece({x:3,y:0,shape:0});setScore(0);setOver(false);};
+ return <Frame title={over?"STACK OVER":"TETRIS · ARROW KEYS"} score={score} reset={reset}><div className="tetris-board">{board.flatMap((r,y)=>r.map((v,x)=><span key={y*10+x} className={v||blocks().some(([bx,by])=>bx===x&&by===y)?"tetris-block":""}/>))}</div><div className="game-action-row"><button className="secondary" onClick={()=>setPiece(p=>({...p,x:Math.max(0,p.x-1)}))}>LEFT</button><button className="secondary" onClick={()=>setPiece(p=>({...p,x:Math.min(6,p.x+1)}))}>RIGHT</button><button className="secondary" onClick={tick}>DROP</button></div>{over&&<div className="result"><b>GAME OVER · {score} POINTS</b><button onClick={reset}>PLAY AGAIN</button></div>}</Frame>;
+}
+function Breakout({done}:{done:(s:number,w:boolean)=>void}) {
+ const [paddle,setPaddle]=useState(4);const [ball,setBall]=useState({x:4,y:8,dx:1,dy:-1});const [bricks,setBricks]=useState(()=>Array.from({length:30},(_,i)=>i));const [lost,setLost]=useState(false);const [won,setWon]=useState(false);
+ useEffect(()=>{if(lost||won)return;const t=window.setInterval(()=>setBall(b=>{let x=b.x+b.dx,y=b.y+b.dy,dx=b.dx,dy=b.dy;if(x<0||x>8)dx=-dx;if(y<0)dy=-dy;if(y>=11){if(Math.abs(x-paddle)<=1){dy=-1;}else{setLost(true);done(bricks.length===0?500:30,false);return b;}}const hit=bricks.find(i=>Math.floor(i/10)===Math.floor(y/2)&&i%10===Math.round(x));if(hit!==undefined){setBricks(v=>v.filter(n=>n!==hit));dy=-dy;}return{x:x<0||x>8?x+dx*2:x,y:y>=11?10:y,dx,dy};}),180);return()=>window.clearInterval(t);},[paddle,lost,won,bricks,done]);
+ useEffect(()=>{if(!bricks.length&&!won){setWon(true);done(500,true);}},[bricks,won,done]);
+ const reset=()=>{setPaddle(4);setBall({x:4,y:8,dx:1,dy:-1});setBricks(Array.from({length:30},(_,i)=>i));setLost(false);setWon(false);};
+ return <Frame title="BREAKOUT · MOVE THE PADDLE" score={30-bricks.length} reset={reset}><div className="breakout-board">{Array.from({length:30},(_,i)=><i key={i} className={bricks.includes(i)?"brick":""}/>)}<span className="breakout-ball" style={{left:`${ball.x*10+5}%`,top:`${ball.y*8+4}%`}}/><span className="breakout-paddle" style={{left:`${paddle*10+5}%`}}/></div><div className="game-action-row"><button className="secondary" onClick={()=>setPaddle(p=>Math.max(0,p-1))}>LEFT</button><button className="secondary" onClick={()=>setPaddle(p=>Math.min(8,p+1))}>RIGHT</button></div>{lost&&<div className="result"><b>THE BALL GOT AWAY.</b></div>}</Frame>;
+}
+function Pong({done}:{done:(s:number,w:boolean)=>void}) {
+ const [ball,setBall]=useState({x:5,y:5,dx:1,dy:1});
+ const [paddle,setPaddle]=useState(5);const [cpuPaddle,setCpuPaddle]=useState(5);
+ const [player,setPlayer]=useState(0);const [cpu,setCpu]=useState(0);const [finished,setFinished]=useState(false);
+ useEffect(()=>{
+  if(finished)return;
+  const timer=window.setInterval(()=>{
+   setBall(current=>{
+    let x=current.x+current.dx,y=current.y+current.dy,dx=current.dx,dy=current.dy;
+    if(y<=0||y>=9){dy=-dy;y=Math.max(0,Math.min(9,y));}
+    if(x>=9){if(Math.abs(y-cpuPaddle)<=1){dx=-1;}else{setPlayer(v=>v+1);x=5;y=5;dx=-1;}}
+    if(x<=0){if(Math.abs(y-paddle)<=1){dx=1;}else{setCpu(v=>v+1);x=5;y=5;dx=1;}}
+    return{x,y,dx,dy};
+   });
+   setCpuPaddle(v=>Math.abs(v-ball.y)<=1?v:v+(ball.y>v?1:-1));
+  },230);
+  return()=>window.clearInterval(timer);
+ },[paddle,cpuPaddle,ball.y,finished]);
+ useEffect(()=>{if(player>=5||cpu>=5){setFinished(true);done(player*100,player>cpu);}},[player,cpu,done]);
+ const reset=()=>{setBall({x:5,y:5,dx:1,dy:1});setPaddle(5);setCpuPaddle(5);setPlayer(0);setCpu(0);setFinished(false);};
+ return <Frame title="NEON PONG · FIRST TO 5" score={`${player} : ${cpu}`} reset={reset}>
+  <div className="pong-board"><span className="pong-ball" style={{left:`${ball.x*10}%`,top:`${ball.y*10}%`}}/><i className="pong-you" style={{top:`${paddle*10}%`}}/><i className="pong-cpu" style={{top:`${cpuPaddle*10}%`}}/></div>
+  <div className="game-action-row"><button className="secondary" onClick={()=>setPaddle(v=>Math.max(1,v-1))}>MOVE UP</button><button className="secondary" onClick={()=>setPaddle(v=>Math.min(9,v+1))}>MOVE DOWN</button></div>
+ </Frame>;
+}
+function Simon({done}:{done:(s:number,w:boolean)=>void}) {
+ const [sequence,setSequence]=useState<number[]>([]);const [input,setInput]=useState<number[]>([]);const [active,setActive]=useState(-1);const [started,setStarted]=useState(false);const [failed,setFailed]=useState(false);const [completed,setCompleted]=useState(false);
+ const next=()=>{const s=[...sequence,Math.floor(Math.random()*4)];setSequence(s);setInput([]);let i=0;const t=window.setInterval(()=>{setActive(s[i]);i++;if(i>=s.length){window.clearInterval(t);window.setTimeout(()=>setActive(-1),350);}},650);};
+ const begin=()=>{const first=Math.floor(Math.random()*4);setSequence([first]);setInput([]);setStarted(true);setFailed(false);setActive(first);window.setTimeout(()=>setActive(-1),500);};
+ const tap=(n:number)=>{if(!started||failed)return;const v=[...input,n];setInput(v);if(sequence[v.length-1]!==n){setFailed(true);done(sequence.length*50,false);return;}if(v.length===sequence.length){if(sequence.length>=12){done(600,true);setStarted(false);setCompleted(true);}else window.setTimeout(next,500);}};
+ return <Frame title="SIMON SAYS · REPEAT THE PATTERN" score={sequence.length} reset={()=>{setSequence([]);setInput([]);setStarted(false);setFailed(false);setCompleted(false);setActive(-1);}}><div className="simon-grid">{[0,1,2,3].map(n=><button key={n} className={active===n?"simon-active":""} onClick={()=>tap(n)} disabled={!started||active!==-1}/>)}</div>{!started||failed||completed?<div className="result"><b>{completed?"12 ROUNDS CLEARED":failed?"PATTERN BROKEN": "MEMORIZE THE LIGHTS"}</b><button onClick={begin}> {failed?"TRY AGAIN":"START"}</button></div>:<p className="collection-note">Watch the sequence, then repeat it.</p>}</Frame>;
+}
+function Hangman({done}:{done:(s:number,w:boolean)=>void}) {
+ const words=["ORBIT","PIXEL","VECTOR","NEBULA","CIRCUIT"];const [word,setWord]=useState(words[Math.floor(Math.random()*words.length)]);const [guessed,setGuessed]=useState<string[]>([]);const misses=guessed.filter(c=>!word.includes(c)).length;const won=word.split("").every(c=>guessed.includes(c));
+ useEffect(()=>{if(won)done(500-misses*40,true);else if(misses>=6)done(100,false);},[won,misses,done]);
+ const reset=()=>{setWord(words[Math.floor(Math.random()*words.length)]);setGuessed([]);};
+ return <Frame title="HANGMAN · 6 MISTAKES MAX" score={`${misses}/6`} reset={reset}><div className="hang-word">{word.split("").map((c,i)=><b key={i}>{guessed.includes(c)?c:"_"}</b>)}</div><div className="letter-grid">{ "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map(c=><button key={c} disabled={guessed.includes(c)||won||misses>=6} onClick={()=>setGuessed(v=>[...v,c])}>{c}</button>)}</div>{(won||misses>=6)&&<div className="result"><b>{won?"WORD SAVED":`WORD WAS ${word}`}</b><button onClick={reset}>NEXT WORD</button></div>}</Frame>;
+}
+function ConnectFour({done}:{done:(s:number,w:boolean)=>void}) {
+ const [b,setB]=useState<(number|null)[]>(Array(42).fill(null));const [turn,setTurn]=useState(1);const [result,setResult]=useState("");
+ const winner=(a:(number|null)[])=>{for(let r=0;r<6;r++)for(let c=0;c<7;c++){const i=r*7+c,v=a[i];if(v&&[[0,1],[1,0],[1,1],[1,-1]].some(([dr,dc])=>[1,2,3].every(k=>{const rr=r+dr*k,cc=c+dc*k;return rr>=0&&rr<6&&cc>=0&&cc<7&&a[rr*7+cc]===v;})))return v;}return 0;};
+ const drop=(c:number)=>{if(result||!Array.from({length:6},(_,r)=>b[r*7+c]).some(v=>v===null))return;const n=[...b];for(let r=5;r>=0;r--)if(!n[r*7+c]){n[r*7+c]=1;break;}const w=winner(n);setB(n);if(w){setResult("YOU WIN");done(500,true);}else if(n.every(Boolean)){setResult("DRAW");done(30,false);}else{setTurn(2);const choices=[3,2,4,1,5,0,6].filter(col=>n[col]===null);const simulate=(col:number,mark:number)=>{const test=[...n];for(let row=5;row>=0;row--)if(!test[row*7+col]){test[row*7+col]=mark;break;}return winner(test);};const cc=choices.find(col=>simulate(col,2)===2)??choices.find(col=>simulate(col,1)===1)??choices[Math.floor(Math.random()*choices.length)]??3;for(let r=5;r>=0;r--)if(!n[r*7+cc]){n[r*7+cc]=2;break;}const cw=winner(n);setB(n);if(cw){setResult("CPU WINS");done(0,false);}else if(n.every(Boolean)){setResult("DRAW");done(30,false);}setTurn(1);}};
+ return <Frame title="CONNECT FOUR · GET FOUR IN A ROW" score={turn===1?"YOUR TURN":"CPU"} reset={()=>{setB(Array(42).fill(null));setTurn(1);setResult("");}}><div className="connect-grid">{Array.from({length:7},(_,c)=><button key={c} className="drop-column" onClick={()=>drop(c)} disabled={!!result}>↓</button>)}{b.map((v,i)=><span key={i} className={v===1?"disc red":v===2?"disc yellow":"disc"}/>)}</div>{result&&<div className="result"><b>{result}</b><button onClick={()=>{setB(Array(42).fill(null));setTurn(1);setResult("");}}>REMATCH</button></div>}</Frame>;
+}
+function Whack({done}:{done:(s:number,w:boolean)=>void}) {
+ const [time,setTime]=useState(20);const [target,setTarget]=useState(4);const [score,setScore]=useState(0);const [playing,setPlaying]=useState(false);
+ useEffect(()=>{if(!playing)return;const t=window.setInterval(()=>setTime(v=>{if(v<=1){setPlaying(false);done(score*20,score>=10);return 0;}return v-1;}),1000);return()=>window.clearInterval(t);},[playing,score,done]);
+ return <Frame title="WHACK-A-MOLE · 20 SECONDS" score={score} reset={()=>{setTime(20);setScore(0);setPlaying(false);setTarget(4);}}><div className="tap-status"><span>TIME LEFT</span><b>{time}s</b></div><div className="tap-board">{Array.from({length:9},(_,i)=><button key={i} className={playing&&target===i?"tap-cell is-target":"tap-cell"} onClick={()=>{if(playing&&i===target){setScore(s=>s+1);setTarget(Math.floor(Math.random()*9));}}} disabled={!playing}/>)}</div>{!playing&&<div className="result"><b>{time===0?`FINAL SCORE: ${score}`:"HIT THE MOLE AS FAST AS YOU CAN"}</b><button onClick={()=>{setTime(20);setScore(0);setPlaying(true);}}> {time===0?"PLAY AGAIN":"START"} </button></div>}</Frame>;
+}
+function MathSprint({done}:{done:(s:number,w:boolean)=>void}) {
+ const [time,setTime]=useState(30);const [score,setScore]=useState(0);const [a,setA]=useState(7);const [b,setB]=useState(4);const [answer,setAnswer]=useState("");const [playing,setPlaying]=useState(false);
+ useEffect(()=>{if(!playing)return;const t=window.setInterval(()=>setTime(v=>{if(v<=1){setPlaying(false);done(score*15,score>=8);return 0;}return v-1;}),1000);return()=>window.clearInterval(t);},[playing,score,done]);
+ const submit=()=>{if(Number(answer)===a+b)setScore(s=>s+1);setA(2+Math.floor(Math.random()*18));setB(2+Math.floor(Math.random()*18));setAnswer("");};
+ return <Frame title="MATH SPRINT · 30 SECONDS" score={score} reset={()=>{setTime(30);setScore(0);setPlaying(false);setAnswer("");}}><div className="math-question">{a} + {b} = ?</div><input className="collection-input" value={answer} onChange={e=>setAnswer(e.target.value.replace(/\D/g,""))} onKeyDown={e=>e.key==="Enter"&&submit()} inputMode="numeric" disabled={!playing}/><div className="result"><b>{time}s LEFT</b><button onClick={()=>playing?submit():(setTime(30),setScore(0),setPlaying(true))}>{playing?"SUBMIT":"START"}</button></div></Frame>;
+}
+function ColorClash({done}:{done:(s:number,w:boolean)=>void}) {
+ const colors=[{name:"RED",hex:"#ff5577"},{name:"BLUE",hex:"#65a9ff"},{name:"GREEN",hex:"#69e5ae"},{name:"YELLOW",hex:"#f4d35e"}];const [word,setWord]=useState(0);const [ink,setInk]=useState(1);const [score,setScore]=useState(0);const [left,setLeft]=useState(15);const [playing,setPlaying]=useState(false);const ended=useRef(false);
+ useEffect(()=>{if(!playing)return;const t=window.setInterval(()=>setLeft(v=>{if(v<=1){if(!ended.current){ended.current=true;done(score*20,score>=8);}setPlaying(false);return 0;}return v-1;}),1000);return()=>window.clearInterval(t);},[playing,score,done]);
+ const pick=(n:number)=>{if(!playing||left===0)return;if(n===ink)setScore(s=>s+1);else setScore(s=>Math.max(0,s-1));setWord(Math.floor(Math.random()*4));setInk(Math.floor(Math.random()*4));};
+ return <Frame title="COLOR CLASH · PICK THE INK" score={score} reset={()=>{setPlaying(false);setScore(0);setLeft(15);setWord(0);setInk(1);ended.current=false;}}><div className="color-word" style={{color:colors[ink].hex}}>{colors[word].name}</div><p className="collection-note">Choose the color of the letters, not the word.</p><div className="color-options">{colors.map((c,i)=><button key={c.name} onClick={()=>pick(i)} disabled={!playing} style={{borderColor:c.hex}}>{c.name}</button>)}</div><div className="tap-status"><span>TIME LEFT</span><b>{left}s</b></div><div className="result"><b>{playing?"MATCH THE INK COLOR":left===0?"ROUND COMPLETE":"READY?"}</b><button onClick={()=>{setScore(0);setLeft(15);ended.current=false;setPlaying(true);}} disabled={playing}>START ROUND</button></div></Frame>;
+}
+function PatternRecall({done}:{done:(s:number,w:boolean)=>void}) {
+ const [pattern,setPattern]=useState<number[]>([]);const [picked,setPicked]=useState<number[]>([]);const [phase,setPhase]=useState<"ready"|"show"|"play"|"done">("ready");const [round,setRound]=useState(1);
+ const start=()=>{const p=Array.from({length:round+2},()=>Math.floor(Math.random()*16));setPattern(p);setPicked([]);setPhase("show");window.setTimeout(()=>setPhase("play"),1800);};
+ const pick=(n:number)=>{if(phase!=="play")return;const p=[...picked,n];setPicked(p);if(pattern[p.length-1]!==n){setPhase("done");done((round-1)*50,false);}else if(p.length===pattern.length){if(round===8){setPhase("done");done(500,true);}else setRound(r=>r+1),setPhase("ready");}};
+ return <Frame title={`PATTERN RECALL · ROUND ${round}`} score={round-1} reset={()=>{setRound(1);setPattern([]);setPicked([]);setPhase("ready");}}><div className="pattern-grid">{Array.from({length:16},(_,i)=><button key={i} className={phase==="show"&&pattern.includes(i)?"pattern-lit":""} onClick={()=>pick(i)} disabled={phase!=="play"}/>)}</div><div className="result"><b>{phase==="show"?"MEMORIZE THE PATTERN":phase==="play"?"REPEAT IT":phase==="done"?"PATTERN FAILED":"READY?"}</b><button onClick={start} disabled={phase==="show"||phase==="play"}>{phase==="done"?"RETRY":"START ROUND"}</button></div></Frame>;
+}
+function HigherLower({done}:{done:(s:number,w:boolean)=>void}) {
+ const [current,setCurrent]=useState(7);const [next,setNext]=useState(0);const [streak,setStreak]=useState(0);const [over,setOver]=useState(false);
+ const guess=(high:boolean)=>{if(over)return;const n=1+Math.floor(Math.random()*13);setNext(n);if((high&&n>=current)||(!high&&n<=current)){setStreak(s=>s+1);setCurrent(n);if(streak>=9){setOver(true);done(500,true);}}else{setOver(true);done(streak*40,false);}};
+ return <Frame title="HIGHER OR LOWER · CARD GUESS" score={streak} reset={()=>{setCurrent(7);setNext(0);setStreak(0);setOver(false);}}><div className="card-number">{next||current}</div><p className="collection-note">Will the next card be higher or lower?</p><div className="game-action-row"><button className="secondary" onClick={()=>guess(false)} disabled={over}>LOWER</button><button className="secondary" onClick={()=>guess(true)} disabled={over}>HIGHER</button></div>{over&&<div className="result"><b>{streak} CORRECT GUESSES</b><button onClick={()=>{setCurrent(7);setNext(0);setStreak(0);setOver(false);}}>DEAL AGAIN</button></div>}</Frame>;
+}
+function TypingRush({done}:{done:(s:number,w:boolean)=>void}) {
+ const text="THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG";const [value,setValue]=useState("");const [time,setTime]=useState(30);const [playing,setPlaying]=useState(false);
+ useEffect(()=>{if(!playing)return;const t=window.setInterval(()=>setTime(v=>{if(v<=1){setPlaying(false);done(value.length*5,value===text);return 0;}return v-1;}),1000);return()=>window.clearInterval(t);},[playing,value,done]);
+ return <Frame title="TYPING RUSH · 30 SECONDS" score={value.length} reset={()=>{setValue("");setTime(30);setPlaying(false);}}><p className="typing-prompt">{text}</p><textarea className="collection-input" value={value} onChange={e=>{const next=e.target.value.toUpperCase();if(text.startsWith(next)){setValue(next);if(next===text){setPlaying(false);done(text.length*5,true);}}}} disabled={!playing} placeholder="Start typing the sentence..." rows={3}/><div className="result"><b>{time}s LEFT</b><button onClick={()=>{if(!playing){setValue("");setTime(30);setPlaying(true);}}} disabled={playing}>{time===0?"FINISHED":"START"}</button></div></Frame>;
+}
+function NumberHunt({done}:{done:(s:number,w:boolean)=>void}) {
+ const shuffleNumbers=()=>{const a=Array.from({length:25},(_,i)=>i+1);for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+ const [numbers,setNumbers]=useState(shuffleNumbers);const [next,setNext]=useState(1);const [mistakes,setMistakes]=useState(0);
+ const pick=(n:number)=>{if(n===next){if(n===25)done(500-mistakes*10,true);setNext(v=>v+1);}else setMistakes(v=>v+1);};
+ return <Frame title="NUMBER HUNT · FIND 1 TO 25" score={next-1} reset={()=>{setNumbers(shuffleNumbers());setNext(1);setMistakes(0);}}><div className="number-grid">{numbers.map(n=><button key={n} className={n<next?"number-found":""} disabled={n<next} onClick={()=>pick(n)}>{n}</button>)}</div><p className="collection-note">Find the numbers in ascending order. Mistakes: {mistakes}</p></Frame>;
+}
+function MiniSudoku({done}:{done:(s:number,w:boolean)=>void}) {
+ const puzzle=[1,0,0,4,0,4,1,0,0,1,4,0,4,0,0,1];const solution=[1,2,3,4,3,4,1,2,2,1,4,3,4,3,2,1];const [values,setValues]=useState(puzzle);const [checked,setChecked]=useState(false);
+ const set=(i:number,v:number)=>setValues(a=>a.map((n,j)=>i===j?v:n));
+ const verify=()=>{if(checked)return;const ok=values.every((v,i)=>v===solution[i]);setChecked(true);done(ok?500:100,ok);};
+ return <Frame title="MINI SUDOKU · 4×4" score={values.filter((v,i)=>v&&puzzle[i]===0).length} reset={()=>{setValues(puzzle);setChecked(false);}}><div className="sudoku-grid">{values.map((v,i)=>puzzle[i]?<b key={i}>{v}</b>:<select key={i} value={v||""} onChange={e=>set(i,Number(e.target.value))}><option value="">·</option>{[1,2,3,4].map(n=><option key={n}>{n}</option>)}</select>)}</div><div className="result"><b>{checked?"CHECK COMPLETE":"EACH ROW, COLUMN AND 2×2 BOX USES 1–4"}</b><button onClick={verify} disabled={checked}>CHECK SOLUTION</button></div></Frame>;
+}
+export function CollectionGame({id,onFinish}:Props) {
+ const finishRef=useRef(onFinish);finishRef.current=onFinish;
+ const complete=useCallback((score:number,won:boolean)=>finishRef.current(id,score,won),[id]);
+ switch(id){
+  case "minesweeper":return <Minesweeper done={complete}/>;
+  case "tetris":return <Tetris done={complete}/>;
+  case "breakout":return <Breakout done={complete}/>;
+  case "pong":return <Pong done={complete}/>;
+  case "simon":return <Simon done={complete}/>;
+  case "hangman":return <Hangman done={complete}/>;
+  case "connect-four":return <ConnectFour done={complete}/>;
+  case "whack-a-mole":return <Whack done={complete}/>;
+  case "math-sprint":return <MathSprint done={complete}/>;
+  case "color-clash":return <ColorClash done={complete}/>;
+  case "pattern-recall":return <PatternRecall done={complete}/>;
+  case "higher-lower":return <HigherLower done={complete}/>;
+  case "typing-rush":return <TypingRush done={complete}/>;
+  case "number-hunt":return <NumberHunt done={complete}/>;
+  case "mini-sudoku":return <MiniSudoku done={complete}/>;
+  default:return null;
+ }
+}
