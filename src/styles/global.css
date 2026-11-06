@@ -55,3 +55,19 @@
 .skin-option b{font:8px "DM Mono",monospace;text-align:center}.skin-option small{font:7px "DM Mono",monospace;color:#94a0b3}
 .skin-swatch{width:24px;height:24px;border-radius:50%;background:#8dffcb;box-shadow:0 0 14px currentColor}.skin-swatch.violet{background:#b4a1ff}.skin-swatch.ember{background:#ffb77e}.skin-swatch.ice{background:#8bc7ff}
 @media(max-width:760px){.skin-shop{grid-template-columns:repeat(2,minmax(0,1fr));width:100%}}
+
+
+/* Game instructions: readable, compact and responsive above every playfield. */
+.game-guide{margin:18px 0 16px;padding:18px 20px;border:1px solid var(--line);border-radius:9px;background:linear-gradient(145deg,#141d2a,#101722);color:#e8edf5}
+.game-guide-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px}
+.guide-kicker{font:700 10px "DM Mono",monospace;letter-spacing:1.5px;color:var(--mint)}
+.guide-language{font:8px "DM Mono",monospace;letter-spacing:.8px;color:#7e8da2}
+.guide-summary{margin:0 0 16px;color:#aeb9c9;font-size:11px;line-height:1.6}
+.guide-columns{display:grid;grid-template-columns:1fr 1.5fr 1fr;gap:18px}
+.guide-columns h3{margin:0 0 8px;color:var(--mint);font:700 8px "DM Mono",monospace;letter-spacing:1px}
+.guide-columns p,.guide-columns ul{margin:0;color:#d0d8e4;font-size:10px;line-height:1.65}
+.guide-columns ul{padding-left:16px}.guide-columns li+li{margin-top:4px}
+.light-theme .game-guide{background:linear-gradient(145deg,#fff,#edf2f8);border-color:#cbd3df;color:#172234}
+.light-theme .guide-summary,.light-theme .guide-columns p,.light-theme .guide-columns ul{color:#46566b}
+.light-theme .guide-language{color:#68768a}
+@media(max-width:760px){.game-guide{padding:15px}.guide-columns{grid-template-columns:1fr;gap:14px}.guide-language{font-size:7px}.guide-summary{font-size:10px}}

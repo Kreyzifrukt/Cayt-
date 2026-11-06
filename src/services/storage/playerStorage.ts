@@ -31,6 +31,7 @@ export function normalizeSave(value: unknown): Save {
     ? [...new Set(value.favorites.filter((id): id is GameId => typeof id === "string" && GAME_IDS.includes(id as GameId)))]
     : [];
   return {
+    language: value.language === "en" ? "en" : "uk",
     xp: readNumber(value.xp, 0), coins: readNumber(value.coins, 0),
     played: readNumber(value.played, 0), wins: readNumber(value.wins, 0),
     best, favorites, sound: typeof value.sound === "boolean" ? value.sound : true,

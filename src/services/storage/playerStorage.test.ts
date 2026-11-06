@@ -13,6 +13,12 @@ describe("player save normalization", () => {
     expect(save.skin).toBe("mint");
     expect(save.unlockedSkins).toEqual(["mint"]);
     expect(save.profileName).toBe("PLAYER ONE");
+    expect(save.language).toBe("uk");
+  });
+
+  it("restores a valid saved language and falls back safely for unknown values", () => {
+    expect(normalizeSave({ language: "en" }).language).toBe("en");
+    expect(normalizeSave({ language: "fr" }).language).toBe("uk");
   });
 
   it("accepts only known game IDs and removes duplicate favorites", () => {

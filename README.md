@@ -63,3 +63,11 @@ npm run build
 ```
 
 All progress is stored in localStorage under `neon-arcade-save`. Clearing browser site data resets the local profile. Online leaderboards and cloud synchronization are intentionally not represented as available: they require a hosted backend, user accounts and server-side score validation.
+
+
+## Language and game instructions
+
+- The interface supports English and Ukrainian. Ukrainian is the default for new profiles.
+- The selected language is stored in the local player save and survives reloads and backup export/import.
+- Every game has an instruction panel above its playfield with the objective, rules and controls in the selected language.
+- Existing saves are migrated automatically and keep their progress.

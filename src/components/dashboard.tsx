@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Activity, Award, Bolt, Brain, Crown, Gamepad2, Heart, Shield, Target, Trophy,
   Zap, Play, ArrowRight, Grid3X3, MousePointerClick, Type, Star, Bomb, Blocks,
@@ -8,6 +8,8 @@ import {
 import type { ReactNode } from "react";
 import type { GameId } from "../types/game";
 import type { Save } from "../types/player";
+import { gameCopy } from "../games/gameGuides";
+import { t } from "../i18n";
 
 export const games = [
   { id: "snake" as const, title: "NEON SNAKE", genre: "ARCADE", description: "Collect energy, grow longer and avoid your own trail.", icon: Activity, color: "mint", level: "CLASSIC" },
@@ -49,23 +51,26 @@ export function Stat({ icon, label, value }: { icon: ReactNode; label: string; v
 export function Dashboard({ save, level, launch, favorite }: {
   save: Save; level: number; launch: (id: GameId) => void; favorite: (id: GameId) => void;
 }) {
+  const tr=(key: Parameters<typeof t>[1])=>t(save.language,key);
+  const localizedGames=games.map(game=>({...game,...gameCopy(game.id,save.language)}));
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [query, setQuery] = useState("");
   const [genre, setGenre] = useState("ALL");
-  const genres = useMemo(() => ["ALL", ...Array.from(new Set(games.map(g => g.genre))).sort()], []);
-  const visibleGames = games.filter(game =>
+  useEffect(() => setGenre("ALL"), [save.language]);
+  const genres = useMemo(() => ["ALL", ...Array.from(new Set(localizedGames.map(g => g.genre))).sort()], [save.language]);
+  const visibleGames = localizedGames.filter(game =>
     (!favoritesOnly || save.favorites.includes(game.id)) &&
     (genre === "ALL" || game.genre === genre) &&
     (game.title.toLowerCase().includes(query.toLowerCase()) || game.description.toLowerCase().includes(query.toLowerCase()))
   );
   return <section className="content">
-    <div className="welcome"><div><div className="eyebrow"><i/> WELCOME BACK, {save.profileName.toUpperCase()}</div><h1>Ready to <em>play?</em></h1><p>Your next personal best is one game away.</p></div><span className="ready">◷ YOUR ARCADE IS READY</span></div>
-    <div className="hero"><div className="hero-grid"/><div className="hero-copy"><div className="featured"><i/> FEATURED GAME</div><h2>ENTER THE<br/><em>NEON GRID.</em></h2><p>Fast moves. Clean lines. A high score waiting to happen.</p><button className="primary" onClick={()=>launch("snake")}><Play size={15} fill="currentColor"/> PLAY SNAKE <ArrowRight size={15}/></button></div><div className="hero-art"><div className="orbit one"/><div className="orbit two"/><div className="snake-art"><i/><i/><i/><i/><i/><i/><b/></div><div className="hero-score">001<small>HIGH SCORE</small></div></div><span className="hero-count">01 <small>/ 31</small></span></div>
-    <div className="stats-strip"><Stat icon={<Gamepad2/>} label="GAMES PLAYED" value={save.played}/><Stat icon={<Trophy/>} label="VICTORIES" value={save.wins}/><Stat icon={<Crown/>} label="PLAYER LEVEL" value={level}/><Stat icon={<Award/>} label="BEST SCORE" value={Math.max(0,...Object.values(save.best))}/></div>
-    <div className="daily-card"><div><div className="eyebrow">DAILY QUEST</div><b>ARCADE WARM-UP</b><p>Finish 3 games today to earn 50 bonus XP and 25 coins.</p></div><div className="daily-progress"><strong>{Math.min(3,save.dailyRuns)} / 3</strong><div className="progress"><i style={{width:`${Math.min(100,save.dailyRuns/3*100)}%`}}/></div><small>{save.dailyClaimed?"REWARD CLAIMED": "DAILY REWARD · 50 XP + 25 COINS"}</small></div></div>
-    <div className="section-heading"><div><div className="eyebrow">PICK YOUR CHALLENGE</div><h2>THE ARCADE <small>/ {String(games.length).padStart(2,"0")}</small></h2></div><button className={favoritesOnly?"favorites-filter active":"favorites-filter"} onClick={()=>setFavoritesOnly(v=>!v)} aria-pressed={favoritesOnly}><Star size={13} fill={favoritesOnly?"currentColor":"none"}/>{favoritesOnly?"SHOW ALL GAMES":`FAVORITES · ${save.favorites.length}`}</button></div>
-    <div className="game-filters"><input aria-label="Search games" placeholder="Search games..." value={query} onChange={e=>setQuery(e.target.value)}/><select aria-label="Filter by genre" value={genre} onChange={e=>setGenre(e.target.value)}>{genres.map(g=><option key={g} value={g}>{g==="ALL"?"ALL GENRES":g}</option>)}</select></div>
-    {visibleGames.length?<div className="game-grid">{visibleGames.map(game=>{const index=games.findIndex(g=>g.id===game.id);return <article className={`game-card ${game.color}`} key={game.id}><div className="card-top"><small>{String(index+1).padStart(2,"0")} / GAME</small><button onClick={()=>favorite(game.id)} aria-label={save.favorites.includes(game.id)?`Remove ${game.title} from favorites`:`Add ${game.title} to favorites`} aria-pressed={save.favorites.includes(game.id)}><Heart size={16} fill={save.favorites.includes(game.id)?"currentColor":"none"}/></button></div><div className="game-art"><div className="glow"/><game.icon/></div><div className="card-info"><div className="meta"><span>{game.genre}</span><small>{game.level}</small></div><h3>{game.title}</h3><p>{game.description}</p><div className="card-bottom"><small>BEST <b>{save.best[game.id]||0}</b></small><button onClick={()=>launch(game.id)}>PLAY <ArrowRight size={14}/></button></div></div></article>;})}</div>:<div className="empty-favorites"><Star size={20}/><b>NO MATCHING GAMES</b><span>Try another search or clear the filters.</span></div>}
-    <div className="callout"><Shield/><div><b>YOUR PROGRESS STAYS YOURS.</b><p>Scores, XP and favorites are saved locally. Export a backup in Settings.</p></div><span>✓ LOCAL-FIRST</span></div>
+    <div className="welcome"><div><div className="eyebrow"><i/> {tr("welcome")}, {save.profileName.toUpperCase()}</div><h1>{save.language==="uk"?"Готові до":"Ready to"} <em>{save.language==="uk"?"гри?":"play?"}</em></h1><p>{tr("nextBest")}</p></div><span className="ready">{tr("ready")}</span></div>
+    <div className="hero"><div className="hero-grid"/><div className="hero-copy"><div className="featured"><i/> {tr("featured")}</div><h2>{tr("enterGrid")}<br/><em>{tr("neonGrid")}</em></h2><p>{tr("heroText")}</p><button className="primary" onClick={()=>launch("snake")}><Play size={15} fill="currentColor"/> {tr("playSnake")} <ArrowRight size={15}/></button></div><div className="hero-art"><div className="orbit one"/><div className="orbit two"/><div className="snake-art"><i/><i/><i/><i/><i/><i/><b/></div><div className="hero-score">001<small>HIGH SCORE</small></div></div><span className="hero-count">01 <small>/ 31</small></span></div>
+    <div className="stats-strip"><Stat icon={<Gamepad2/>} label={tr("gamesPlayed")} value={save.played}/><Stat icon={<Trophy/>} label={tr("victories")} value={save.wins}/><Stat icon={<Crown/>} label={tr("playerLevel")} value={level}/><Stat icon={<Award/>} label={tr("bestScore")} value={Math.max(0,...Object.values(save.best))}/></div>
+    <div className="daily-card"><div><div className="eyebrow">{tr("dailyQuest")}</div><b>{tr("warmup")}</b><p>{tr("dailyDescription")}</p></div><div className="daily-progress"><strong>{Math.min(3,save.dailyRuns)} / 3</strong><div className="progress"><i style={{width:`${Math.min(100,save.dailyRuns/3*100)}%`}}/></div><small>{save.dailyClaimed?tr("rewardClaimed"):tr("dailyReward")}</small></div></div>
+    <div className="section-heading"><div><div className="eyebrow">{tr("pickChallenge")}</div><h2>{tr("arcade")} <small>/ {String(games.length).padStart(2,"0")}</small></h2></div><button className={favoritesOnly?"favorites-filter active":"favorites-filter"} onClick={()=>setFavoritesOnly(v=>!v)} aria-pressed={favoritesOnly}><Star size={13} fill={favoritesOnly?"currentColor":"none"}/>{favoritesOnly?tr("showAll"):`${tr("favorites")} · ${save.favorites.length}`}</button></div>
+    <div className="game-filters"><input aria-label={tr("searchGames")} placeholder={tr("searchGames")} value={query} onChange={e=>setQuery(e.target.value)}/><select aria-label={tr("allGenres")} value={genre} onChange={e=>setGenre(e.target.value)}>{genres.map(g=><option key={g} value={g}>{g==="ALL"?tr("allGenres"):g}</option>)}</select></div>
+    {visibleGames.length?<div className="game-grid">{visibleGames.map(game=>{const index=games.findIndex(g=>g.id===game.id);return <article className={`game-card ${game.color}`} key={game.id}><div className="card-top"><small>{String(index+1).padStart(2,"0")} / {save.language==="uk"?"ГРА":"GAME"}</small><button onClick={()=>favorite(game.id)} aria-label={save.favorites.includes(game.id)?save.language==="uk"?(save.favorites.includes(game.id)?`Прибрати ${game.title} з обраного`:`Додати ${game.title} до обраного`):(save.favorites.includes(game.id)?`Remove ${game.title} from favorites`:`Add ${game.title} to favorites`)} aria-pressed={save.favorites.includes(game.id)}><Heart size={16} fill={save.favorites.includes(game.id)?"currentColor":"none"}/></button></div><div className="game-art"><div className="glow"/><game.icon/></div><div className="card-info"><div className="meta"><span>{game.genre}</span><small>{game.level}</small></div><h3>{game.title}</h3><p>{game.description}</p><div className="card-bottom"><small>{tr("best")} <b>{save.best[game.id]||0}</b></small><button onClick={()=>launch(game.id)}>{tr("play")} <ArrowRight size={14}/></button></div></div></article>;})}</div>:<div className="empty-favorites"><Star size={20}/><b>{tr("noGames")}</b><span>{tr("trySearch")}</span></div>}
+    <div className="callout"><Shield/><div><b>{tr("progressYours")}</b><p>{tr("progressHelp")}</p></div><span>✓ {tr("localFirst")}</span></div>
   </section>;
 }
