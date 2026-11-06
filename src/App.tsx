@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { BarChart3, ChevronRight, Crown, Gamepad2, Home, Menu, Sparkles, Shield, Trophy, Volume2, VolumeX, Settings, Download, Upload, Maximize2, Star, Award, Medal, RotateCcw, Play } from "lucide-react";
+import { BarChart3, ChevronRight, Crown, Gamepad2, Home, Menu, Sparkles, Trophy, Volume2, VolumeX, Settings, Download, Upload, Maximize2, RotateCcw } from "lucide-react";
 import { Game } from "./games";
 import type { GameId } from "./types/game";
-import { Dashboard, Stat, games } from "./components/dashboard";
+import { Dashboard, games } from "./components/dashboard";
 import type { Save } from "./types/player";
 import { DEFAULT_SAVE } from "./types/player";
 import { normalizeSave } from "./services/storage/playerStorage";
@@ -41,7 +41,14 @@ export default function App() {
       return {...fresh,xp:fresh.xp+Math.max(5,Math.round(score/5)+10)+(reward?50:0),
         coins:fresh.coins+Math.max(1,Math.floor(score/100))+(reward?25:0),
         played:fresh.played+1,wins:fresh.wins+(won?1:0),dailyRuns:runs,dailyClaimed:fresh.dailyClaimed||reward,
-        best:{...fresh.best,[id]:Math.max(fresh.best[id]||0,score)}};
+        best:{...fresh.best,[id]:Math.max(fresh.best[id]||0,score)},
+        gameStats:{...fresh.gameStats,[id]:{
+          played:(fresh.gameStats[id]?.played||0)+1,
+          wins:(fresh.gameStats[id]?.wins||0)+(won?1:0),
+          totalDurationSeconds:(fresh.gameStats[id]?.totalDurationSeconds||0)+session.durationSeconds,
+          bestScore:Math.max(fresh.gameStats[id]?.bestScore||0,score),
+        }},
+        history:[session,...fresh.history].slice(0,500)};
     });
   };
   const launch=(id:GameId)=>{runStartedAt.current=Date.now();setActive(id);setStats(false);setSettings(false);setMenu(false);};
@@ -59,15 +66,7 @@ export default function App() {
     if(window.confirm(tr("resetConfirm")))setSave({...DEFAULT_SAVE,dailyDate:todayKey()});
   };
   const skins=[{id:"mint",name:"NEON MINT",price:0},{id:"violet",name:"VIOLET PULSE",price:100},{id:"ember",name:"EMBER CORE",price:125},{id:"ice",name:"ARCTIC GLOW",price:150}] as const;
-  const achievements=[
-    {name:"FIRST STEPS",description:"Play your first game",unlocked:save.played>=1,icon:<Play/>},
-    {name:"ARCADE REGULAR",description:"Complete 25 games",unlocked:save.played>=25,icon:<Gamepad2/>},
-    {name:"WINNER'S CIRCLE",description:"Win 10 games",unlocked:save.wins>=10,icon:<Trophy/>},
-    {name:"LEVEL FIVE",description:"Reach player level 5",unlocked:level>=5,icon:<Crown/>},
-    {name:"COLLECTOR",description:"Favorite 5 games",unlocked:save.favorites.length>=5,icon:<Star/>},
-    {name:"FULL HOUSE",description:"Set a record in 10 games",unlocked:Object.keys(save.best).filter(k=>(save.best as Record<string,number>)[k]>0).length>=10,icon:<Medal/>},
-    {name:"NEON LEGEND",description:"Earn 5,000 XP",unlocked:save.xp>=5000,icon:<Award/>},
-  ];
+
   return <div className={["shell",save.theme==="light"?"light-theme":"",save.skin!=="mint"?`skin-${save.skin}`:""].filter(Boolean).join(" ")}>
     <aside className={`sidebar ${menu?"open":""}`}>
       <button className="brand" onClick={()=>{setActive(null);setStats(false);setSettings(false);}}><span className="brand-icon"><Gamepad2/></span><span>NEON<span className="brand-light">ARCADE</span><small>PLAY BEYOND LIMITS</small></span></button>
