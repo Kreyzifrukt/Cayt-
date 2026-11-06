@@ -23,6 +23,7 @@ export default function App() {
   const [settings,setSettings]=useState(false);
   const [menu,setMenu]=useState(false);
   const runStartedAt=useRef<number|null>(null);
+  const awaitingRestart=useRef(false);
   const level=Math.floor(save.xp/250)+1;
   const tr=(key: Parameters<typeof t>[1])=>t(save.language,key);
   const selectedCopy=active?gameCopy(active,save.language):null;
@@ -32,6 +33,7 @@ export default function App() {
     const startedAt=runStartedAt.current;
     if(startedAt===null)return;
     runStartedAt.current=null;
+    awaitingRestart.current=true;
     const session={id,playedAt:new Date(finishedAt).toISOString(),durationSeconds:Math.max(0,Math.round((finishedAt-startedAt)/1000)),score:Math.max(0,score),won};
     if(save.sound){try{const context=new AudioContext();const oscillator=context.createOscillator();const gain=context.createGain();oscillator.type="sine";oscillator.frequency.value=won?880:260;gain.gain.setValueAtTime(0.035,context.currentTime);gain.gain.exponentialRampToValueAtTime(0.001,context.currentTime+0.18);oscillator.connect(gain);gain.connect(context.destination);oscillator.start();oscillator.stop(context.currentTime+0.18);oscillator.onended=()=>void context.close();}catch{/* Audio is optional and may be unavailable. */}}
     setSave(s=>{
@@ -51,7 +53,24 @@ export default function App() {
         history:[session,...fresh.history].slice(0,500)};
     });
   };
-  const launch=(id:GameId)=>{runStartedAt.current=Date.now();setActive(id);setStats(false);setSettings(false);setMenu(false);};
+  useEffect(()=>{
+    if(!active)return;
+    const beginAgain=(event:Event)=>{
+      if(!awaitingRestart.current)return;
+      const target=event.target as HTMLElement|null;
+      if(event.type==="keydown"||target?.closest(".playfield")){
+        runStartedAt.current=Date.now();
+        awaitingRestart.current=false;
+      }
+    };
+    document.addEventListener("pointerdown",beginAgain,true);
+    window.addEventListener("keydown",beginAgain,true);
+    return()=>{
+      document.removeEventListener("pointerdown",beginAgain,true);
+      window.removeEventListener("keydown",beginAgain,true);
+    };
+  },[active]);
+  const launch=(id:GameId)=>{awaitingRestart.current=false;runStartedAt.current=Date.now();setActive(id);setStats(false);setSettings(false);setMenu(false);};
   const selected=games.find(g=>g.id===active);
   const exportSave=()=>{
     const blob=new Blob([JSON.stringify(save,null,2)],{type:"application/json"});
