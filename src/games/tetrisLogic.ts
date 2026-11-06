@@ -19,22 +19,22 @@ export function rotateTetromino(shape: number[]): number[] {
 }
 
 export function getTetrominoBlocks(
-  shapeIndex: number,
+  shape: number[],
   x: number,
   y: number,
 ): [number, number][] {
-  return TETROMINOES[shapeIndex].flatMap((value, index) =>
+  return shape.flatMap((value, index) =>
     value ? [[x + (index % 4), y + Math.floor(index / 4)] as [number, number]] : [],
   );
 }
 
 export function canPlaceTetromino(
   board: number[][],
-  shapeIndex: number,
+  shape: number[],
   x: number,
   y: number,
 ): boolean {
-  return getTetrominoBlocks(shapeIndex, x, y).every(
+  return getTetrominoBlocks(shape, x, y).every(
     ([column, row]) =>
       column >= 0 && column < 10 && row >= 0 && row < 16 && !board[row][column],
   );

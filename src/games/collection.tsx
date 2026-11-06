@@ -20,7 +20,7 @@ function Minesweeper({ done }: { done: (s:number,w:boolean)=>void }) {
 }
 function Tetris({ done }: { done:(s:number,w:boolean)=>void }) {
   const [board,setBoard]=useState<number[][]>(()=>Array.from({length:16},()=>Array(10).fill(0)));
-  const [piece,setPiece]=useState({x:3,y:0,shape:0});
+  const [piece,setPiece]=useState({x:3,y:0,shape:TETROMINOES[0]});
   const [score,setScore]=useState(0);
   const [over,setOver]=useState(false);
   const blocks=(x=piece.x,y=piece.y,shape=piece.shape)=>getTetrominoBlocks(shape,x,y);
@@ -38,13 +38,13 @@ function Tetris({ done }: { done:(s:number,w:boolean)=>void }) {
     while(kept.length<16)kept.unshift(Array(10).fill(0));
     const total=score+cleared*100;
     setBoard(kept);setScore(total);
-    const nextPiece={x:3,y:0,shape:Math.floor(Math.random()*TETROMINOES.length)};
+    const nextPiece={x:3,y:0,shape:TETROMINOES[Math.floor(Math.random()*TETROMINOES.length)]};
     if(getTetrominoBlocks(nextPiece.shape,nextPiece.x,nextPiece.y).some(([x,y])=>kept[y]?.[x])){setOver(true);done(total,false);}
     else setPiece(nextPiece);
   };
   useEffect(()=>{if(over)return;const timer=window.setInterval(tick,650);return()=>window.clearInterval(timer);});
   useEffect(()=>{const key=(event:KeyboardEvent)=>{if(event.key==="ArrowLeft"||event.key==="a"){event.preventDefault();shift(-1);}else if(event.key==="ArrowRight"||event.key==="d"){event.preventDefault();shift(1);}else if(event.key==="ArrowDown"||event.key==="s"){event.preventDefault();tick();}else if(event.key==="ArrowUp"||event.key==="w"){event.preventDefault();rotate();}};window.addEventListener("keydown",key);return()=>window.removeEventListener("keydown",key);});
-  const reset=()=>{setBoard(Array.from({length:16},()=>Array(10).fill(0)));setPiece({x:3,y:0,shape:0});setScore(0);setOver(false);};
+  const reset=()=>{setBoard(Array.from({length:16},()=>Array(10).fill(0)));setPiece({x:3,y:0,shape:TETROMINOES[0]});setScore(0);setOver(false);};
   return <Frame title={over?"STACK OVER":"TETRIS · ARROW KEYS"} score={score} reset={reset}>
     <div className="tetris-board" aria-label="Tetris playfield">{board.flatMap((row,y)=>row.map((value,x)=><span key={y*10+x} className={value||blocks().some(([bx,by])=>bx===x&&by===y)?"tetris-block":""}/>))}</div>
     <div className="game-action-row"><button className="secondary" onClick={()=>shift(-1)} disabled={over}>LEFT</button><button className="secondary" onClick={rotate} disabled={over}>ROTATE</button><button className="secondary" onClick={()=>shift(1)} disabled={over}>RIGHT</button><button className="secondary" onClick={tick} disabled={over}>DOWN</button></div>
