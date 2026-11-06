@@ -6,7 +6,7 @@ import { Dashboard,Stat,games } from "./components/dashboard";
 import type { Save } from "./types/player";
 import { usePlayerSave } from "./hooks/usePlayerSave";
 export default function App(){
- const [save,setSave]=useState<Save>(readSave);const [active,setActive]=useState<GameId|null>(null);const [stats,setStats]=useState(false);const [menu,setMenu]=useState(false);
+ const [save,setSave]=usePlayerSave();const [active,setActive]=useState<GameId|null>(null);const [stats,setStats]=useState(false);const [menu,setMenu]=useState(false);
  const level=Math.floor(save.xp/250)+1;
  const finish=(id:GameId,score:number,won:boolean)=>setSave(s=>({...s,xp:s.xp+Math.max(5,Math.round(score/5)+10),played:s.played+1,wins:s.wins+(won?1:0),best:{...s.best,[id]:Math.max(s.best[id]||0,score)}}));
  const launch=(id:GameId)=>{setActive(id);setStats(false);setMenu(false);};
