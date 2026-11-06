@@ -11,7 +11,7 @@ A source review is not a substitute for playing the games in a browser. The curr
 | Game | Source-level review | Interactive browser test |
 |---|---|---|
 | Snake | Collision, food placement, terminal state reviewed; full-board completion fixed | Pending |
-| 2048 | Merge, spawn and no-move paths reviewed; continued play after reaching 2048 restored | Pending |
+| 2048 | Merge, spawn and no-move logic extracted into tested helpers; continued play after reaching 2048 restored | Pending |
 | Memory | Pair matching and shuffle reviewed; uses Fisher–Yates and blocks rapid third-card selections | Pending |
 | XO | Win/draw detection and CPU move selection reviewed | Pending |
 | Reflex | Reaction timer and false-start flow reviewed | Pending |
@@ -72,7 +72,7 @@ A source review is not a substitute for playing the games in a browser. The curr
 - Draw outcomes are persisted separately from losses for XO, Connect Four, Reversi and Blackjack.
 - XO's CPU now takes an immediate win when available and blocks the player's immediate winning move.
 - Imported global win/draw totals are clamped to the number of recorded games; contradictory session outcomes cannot be both a win and a draw.
-- 2048 now allows continued play after reaching the target tile, and only awards the first milestone once; the run can still end when no legal moves remain.
+- 2048 now allows continued play after reaching the target tile, only awards the first milestone once, and ends when no legal moves remain. Merge, direction and no-move rules have dedicated unit tests.
 - Gem Match generates boards without pre-existing matches and guarantees at least one legal swap; valid swaps resolve chained matches.
 - Shared click and result sounds use browser audio playback with a persistent effects-volume preference.
 - XP changes receive a small, restrained animation.
