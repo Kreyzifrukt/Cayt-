@@ -19,7 +19,7 @@ A source review is not a substitute for playing the games in a browser. The curr
 | Tap Blitz | Timer, keyboard and target changes reviewed | Pending |
 | Word Scramble | Selection, attempt reset and scoring reviewed | Pending |
 | Minesweeper | Safe first click, flood reveal, flags and terminal input reviewed; flag limit and post-game input fixed | Pending |
-| Tetris | Collision and row clearing reviewed; rotation and full tetromino set remain gameplay limitations | Pending |
+| Tetris | Seven standard tetrominoes, rotation, wall kicks, collision and row clearing reviewed | Pending |
 | Breakout | Paddle/ball bounds and brick coordinates reviewed; boundary reflection clamped and paddle reach corrected | Pending |
 | Neon Pong | Ball collision, score and CPU movement reviewed | Pending |
 | Simon Says | Sequence playback and input timing reviewed; flash spacing and timer cleanup fixed | Pending |
