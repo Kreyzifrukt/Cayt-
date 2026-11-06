@@ -45,8 +45,9 @@ export const games = [
   { id: "maze-runner" as const, title: "MAZE RUNNER", genre: "PUZZLE", description: "Find the key and navigate a compact maze to the exit.", icon: Compass, color: "violet", level: "CLASSIC" },
 ];
 
-export function Stat({ icon, label, value }: { icon: ReactNode; label: string; value: number }) {
-  return <div className="stat"><span>{icon}</span><div><small>{label}</small><b>{value.toLocaleString()}</b></div></div>;
+export function Stat({ icon, label, value }: { icon: ReactNode; label: string; value: number | string }) {
+  const displayValue = typeof value === "number" ? value.toLocaleString() : value;
+  return <div className="stat"><span>{icon}</span><div><small>{label}</small><b>{displayValue}</b></div></div>;
 }
 export function Dashboard({ save, level, launch, favorite }: {
   save: Save; level: number; launch: (id: GameId) => void; favorite: (id: GameId) => void;
