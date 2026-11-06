@@ -28,7 +28,7 @@ A source review is not a substitute for playing the games in a browser. The curr
 | Whack-a-Mole | Timer and target selection reviewed; repeated same-target exploit fixed | Pending |
 | Math Sprint | Timer, answer parsing and score updates reviewed | Pending |
 | Color Clash | Ink/word selection, timer and one-time completion reviewed | Pending |
-| Pattern Recall | Sequence now flashes in order rather than revealing all target cells simultaneously; reveal timers are cleared on reset/unmount | Pending |
+| Pattern Recall | Sequence progression and timeout lifecycle reviewed; pending timeout cleanup fixed | Pending |
 | Higher or Lower | Comparison rules reviewed; equal cards no longer count as higher/lower | Pending |
 | Typing Rush | Input prefix validation and timer completion reviewed | Pending |
 | Number Hunt | Completion path reviewed; terminal state and replay UI fixed | Pending |
@@ -65,8 +65,8 @@ A source review is not a substitute for playing the games in a browser. The curr
 - Number Hunt now presents a clear completion state and replay action.
 - Mini Sudoku blocks submission of an incomplete grid.
 - Minesweeper prevents flagging revealed cells, caps flags at the mine count, and ignores board input after completion.
-- Pattern Recall now displays each target cell sequentially so the required input order is actually learnable; all reveal timers are cleared on reset or unmount.
-- Memory uses an unbiased Fisher–Yates shuffle and rejects a third rapid card selection before the lock effect runs.
+- Pattern Recall clears its reveal timer when reset or unmounted.
+- Memory uses an unbiased Fisher–Yates shuffle.
 - Snake ends cleanly if the player fills the entire board.
 - Higher or Lower treats an equal card as a tie rather than awarding either prediction.
 - 2048 now allows continued play after reaching the target tile, and only awards the first milestone once; the run can still end when no legal moves remain.

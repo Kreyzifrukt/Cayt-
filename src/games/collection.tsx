@@ -18,7 +18,7 @@ function Minesweeper({ done }: { done: (s:number,w:boolean)=>void }) {
   const reset=()=>{setMines(createMines());setOpen([]);setFlags([]);setLost(false);setComplete(false);setFlagMode(false);setFirstMove(true);};
   return <Frame title={lost?"MINE DETONATED":"MINESWEEPER · 10 MINES"} score={open.length} reset={reset}><div className="game-action-row"><button className="secondary" onClick={()=>setFlagMode(v=>!v)}>{flagMode?"FLAG MODE ON":"FLAG MODE OFF"}</button><span>10 MINES · 8×8</span></div><div className="mine-grid">{Array.from({length:64},(_,i)=><button key={i} className={open.includes(i)?"mine-cell revealed": "mine-cell"} onClick={()=>{if(lost||complete)return;if(flagMode){if(open.includes(i))return;setFlags(v=>v.includes(i)?v.filter(x=>x!==i):v.length<10?[...v,i]:v);}else reveal(i);}} onContextMenu={e=>{e.preventDefault();if(lost||complete||open.includes(i))return;setFlags(v=>v.includes(i)?v.filter(x=>x!==i):v.length<10?[...v,i]:v);}}>{open.includes(i)?(mines.has(i)?"✹":count(i)||""):flags.includes(i)?"⚑":""}</button>)}</div><p className="collection-note">Откройте все безопасные клетки. Правый клик или режим флага ставит отметку.</p>{lost&&<div className="result"><b>МИНА! Попробуйте ещё раз.</b></div>}{complete&&<div className="result"><b>FIELD CLEARED. NICE WORK.</b></div>}</Frame>;
 }
-function Tetris({ done }: { done:(s:number,w:boolean)=>void }) {
+function Tetris({ done }: { done:(s:number,w:boolean,draw?:boolean)=>void }) {
   const [board,setBoard]=useState<number[][]>(()=>Array.from({length:16},()=>Array(10).fill(0)));
   const [piece,setPiece]=useState({x:3,y:0,shape:TETROMINOES[0]});
   const [score,setScore]=useState(0);
@@ -173,7 +173,7 @@ function MiniSudoku({done}:{done:(s:number,w:boolean)=>void}) {
 }
 export function CollectionGame({id,onFinish}:Props) {
  const finishRef=useRef(onFinish);finishRef.current=onFinish;
- const complete=useCallback((score:number,won:boolean)=>finishRef.current(id,score,won),[id]);
+ const complete=useCallback((score:number,won:boolean,draw=false)=>finishRef.current(id,score,won,draw),[id]);
  switch(id){
   case "minesweeper":return <Minesweeper done={complete}/>;
   case "tetris":return <Tetris done={complete}/>;

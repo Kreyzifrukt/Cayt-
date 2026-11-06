@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { RotateCcw, Zap } from "lucide-react";
 import type { GameId } from "../types/game";
-type Props={onFinish:(id:GameId,score:number,won:boolean)=>void};
+type Props={onFinish:(id:GameId,score:number,won:boolean,draw?:boolean)=>void};
 const symbols=["✦","◆","●","▲","✚","⬟","☾","✿"];
 export function Memory({onFinish}:Props){
  const shuffle=()=>{const cards=[...symbols,...symbols];for(let i=cards.length-1;i>0;i-=1){const j=Math.floor(Math.random()*(i+1));[cards[i],cards[j]]=[cards[j],cards[i]];}return cards;};

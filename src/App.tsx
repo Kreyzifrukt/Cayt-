@@ -57,7 +57,7 @@ export default function App() {
     const baseXp=Math.max(5,Math.round(score/5)+10);
     const gainedXp=baseXp+(dailyReward?50:0);
     const levelUp=Math.floor((save.xp+gainedXp)/250)>Math.floor(save.xp/250);
-    if(save.sound)playArcadeSound(dailyReward||levelUp?"reward":draw?"click":won?"win":"lose",save.effectsVolume);
+    if(save.sound)playArcadeSound(dailyReward||levelUp?"reward":won?"win":"lose",save.effectsVolume);
     setSave(s=>{
       const fresh=s.dailyDate===todayKey()?s:{...s,dailyDate:todayKey(),dailyRuns:0,dailyClaimed:false};
       const runs=fresh.dailyRuns+1;
