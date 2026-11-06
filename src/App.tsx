@@ -31,11 +31,19 @@ export default function App() {
   useEffect(()=>{if(save.dailyDate!==todayKey())setSave(s=>({...s,dailyDate:todayKey(),dailyRuns:0,dailyClaimed:false}));},[save.dailyDate,setSave]);
   useEffect(()=>{
     if(!save.musicEnabled){stopArcadeMusic();return;}
-    void startArcadeMusic(save.musicVolume).then(playing=>{
-      if(!playing)setSave(current=>({...current,musicEnabled:false}));
-    });
-    return ()=>stopArcadeMusic();
-  },[]);
+    // Browsers may reject autoplay until the first user gesture. Keep the
+    // preference enabled and retry once the user interacts with the page.
+    const startAfterGesture=()=>{void startArcadeMusic(save.musicVolume);};
+    startAfterGesture();
+    document.addEventListener("pointerdown",startAfterGesture,{once:true});
+    document.addEventListener("keydown",startAfterGesture,{once:true});
+    return ()=>{
+      document.removeEventListener("pointerdown",startAfterGesture);
+      document.removeEventListener("keydown",startAfterGesture);
+      stopArcadeMusic();
+    };
+  },[save.musicEnabled]);
+  useEffect(()=>{setArcadeMusicVolume(save.musicVolume);},[save.musicVolume]);
   const finish=(id:GameId,score:number,won:boolean)=>{
     const finishedAt=Date.now();
     const startedAt=runStartedAt.current;
