@@ -1,7 +1,8 @@
 import { useCallback,useEffect,useRef,useState } from "react";
 import { Activity,Play,RotateCcw } from "lucide-react";
-import { Memory,XO,Reflex } from "./games-extra";
-export type GameId="snake"|"2048"|"memory"|"xo"|"reflex";
+import { Memory,XO,Reflex } from "./extra";
+import type { GameId } from "../types/game";
+export type { GameId } from "../types/game";
 type Props={id:GameId;onFinish:(id:GameId,score:number,won:boolean)=>void};
 type CallbackProps={onFinish:(id:GameId,score:number,won:boolean)=>void};
 export function Game({id,onFinish}:Props){if(id==="snake")return <Snake onFinish={onFinish}/>;if(id==="2048")return <Puzzle onFinish={onFinish}/>;if(id==="memory")return <Memory onFinish={onFinish}/>;if(id==="xo")return <XO onFinish={onFinish}/>;return <Reflex onFinish={onFinish}/>;}

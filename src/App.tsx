@@ -1,12 +1,12 @@
-import { useEffect,useState } from "react";
+import { useState } from "react";
 import { BarChart3,ChevronRight,Crown,Gamepad2,Home,Menu,Sparkles,Shield,Trophy,Volume2,VolumeX } from "lucide-react";
-import { Game,type GameId } from "./games";
-import { Dashboard,Stat,games,type Save } from "./ui";
-const initial:Save={xp:0,played:0,wins:0,best:{},favorites:[],sound:true};
-function readSave():Save{try{return{...initial,...JSON.parse(localStorage.getItem("neon-arcade-save")||"{}")};}catch{return initial;}}
+import { Game } from "./games";
+import type { GameId } from "./types/game";
+import { Dashboard,Stat,games } from "./components/dashboard";
+import type { Save } from "./types/player";
+import { usePlayerSave } from "./hooks/usePlayerSave";
 export default function App(){
  const [save,setSave]=useState<Save>(readSave);const [active,setActive]=useState<GameId|null>(null);const [stats,setStats]=useState(false);const [menu,setMenu]=useState(false);
- useEffect(()=>{localStorage.setItem("neon-arcade-save",JSON.stringify(save));},[save]);
  const level=Math.floor(save.xp/250)+1;
  const finish=(id:GameId,score:number,won:boolean)=>setSave(s=>({...s,xp:s.xp+Math.max(5,Math.round(score/5)+10),played:s.played+1,wins:s.wins+(won?1:0),best:{...s.best,[id]:Math.max(s.best[id]||0,score)}}));
  const launch=(id:GameId)=>{setActive(id);setStats(false);setMenu(false);};

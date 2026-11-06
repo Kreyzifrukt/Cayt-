@@ -1,7 +1,7 @@
 import { Activity, Award, Bolt, Brain, Crown, Gamepad2, Heart, Shield, Target, Trophy, Zap, Play, ArrowRight } from "lucide-react";
 import type { ReactNode } from "react";
-import type { GameId } from "./games";
-export type Save={xp:number;played:number;wins:number;best:Record<string,number>;favorites:string[];sound:boolean};
+import type { GameId } from "../types/game";
+import type { Save } from "../types/player";
 export const games=[
 {id:"snake" as const,title:"NEON SNAKE",genre:"ARCADE",description:"One more apple. One more point. Don't hit yourself.",icon:Activity,color:"mint",level:"CLASSIC"},
 {id:"2048" as const,title:"2048",genre:"PUZZLE",description:"Merge tiles, plan ahead, reach the legendary tile.",icon:Brain,color:"violet",level:"STRATEGY"},

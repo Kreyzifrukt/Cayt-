@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { RotateCcw, Zap } from "lucide-react";
-import type { GameId } from "./games";
+import type { GameId } from "../types/game";
 type Props={onFinish:(id:GameId,score:number,won:boolean)=>void};
 const symbols=["✦","◆","●","▲","✚","⬟","☾","✿"];
 export function Memory({onFinish}:Props){
