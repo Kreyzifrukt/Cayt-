@@ -134,7 +134,7 @@ export function PlayerStats({ save, level }: Props) {
     </div> : <div className="profile-empty"><Gamepad2/><b>{tr("noSessions")}</b></div>}
 
     <h2 className="section-title">{tr("achievements")} <small>/ {achievements.filter(item => item.unlocked).length} OF {achievements.length} UNLOCKED</small></h2>
-    <div className="achievement-grid">{achievements.map(item => <div className={item.unlocked ? "achievement unlocked" : "achievement"} key={item.name}><span>{item.icon}</span><div><b>{item.name}</b><small>{item.description}</small></div><strong>{item.unlocked ? tr("unlockedStatus") : tr("locked")}</strong></div>)}</div>
+    <div className="achievement-grid">{achievements.map(item => <div className={item.unlocked ? "achievement unlocked" : "achievement"} key={item.name + (item.unlocked ? "-unlocked" : "-locked")}><span>{item.icon}</span><div><b>{item.name}</b><small>{item.description}</small></div><strong>{item.unlocked ? tr("unlockedStatus") : tr("locked")}</strong></div>)}</div>
     <p className="privacy"><Shield/> {tr("privacy")}</p>
   </section>;
 }

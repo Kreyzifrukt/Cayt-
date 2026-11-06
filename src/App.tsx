@@ -36,7 +36,13 @@ export default function App() {
     runStartedAt.current=null;
     awaitingRestart.current=true;
     const session={id,playedAt:new Date(finishedAt).toISOString(),durationSeconds:Math.max(0,Math.round((finishedAt-startedAt)/1000)),score:Math.max(0,score),won};
-    if(save.sound)playArcadeSound(won?"win":"lose",save.effectsVolume);
+    const currentDailyDate=save.dailyDate===todayKey();
+    const nextDailyRuns=(currentDailyDate?save.dailyRuns:0)+1;
+    const dailyReward=nextDailyRuns===3&&!(currentDailyDate&&save.dailyClaimed);
+    const baseXp=Math.max(5,Math.round(score/5)+10);
+    const gainedXp=baseXp+(dailyReward?50:0);
+    const levelUp=Math.floor((save.xp+gainedXp)/250)>Math.floor(save.xp/250);
+    if(save.sound)playArcadeSound(dailyReward||levelUp?"reward":won?"win":"lose",save.effectsVolume);
     setSave(s=>{
       const fresh=s.dailyDate===todayKey()?s:{...s,dailyDate:todayKey(),dailyRuns:0,dailyClaimed:false};
       const runs=fresh.dailyRuns+1;

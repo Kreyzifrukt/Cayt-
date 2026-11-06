@@ -77,6 +77,6 @@ A source review is not a substitute for playing the games in a browser. The curr
 2. Run full keyboard, pointer and touch playthroughs for all 31 games.
 3. Verify victory, loss, draw, restart, repeated sessions, and reward accounting for each game.
 4. Check mobile viewport sizes, touch targets, scrolling, and accidental page gestures.
-5. Finish remaining gameplay design limitations (notably Tetris rotation/shape variety and Gem Match cascades/board generation).
+5. Finish remaining gameplay design limitations (notably Tetris rotation and a complete tetromino set).
 6. Add a separate music track and music-volume control only after the exact CC0 source file is verified; do not expose a nonfunctional slider.
 7. Recheck the full dependency audit before any public deployment.
