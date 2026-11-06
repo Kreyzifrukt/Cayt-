@@ -48,7 +48,7 @@ A source review is not a substitute for playing the games in a browser. The curr
 - Rewards: XP, coins, daily quest progress, best scores, per-game statistics and recent history are updated together.
 - Draw accounting: the current shared result model stores a win/loss boolean, so draws in XO, Connect Four, Reversi and Blackjack are currently recorded as non-wins. This is an accuracy issue to resolve in a separate result-model migration.
 - Save compatibility: the new effects-volume setting is normalized and bounded to 0–1; older saves receive the default.
-- Audio: CC0 interface effects are loaded by the browser on demand. Playback failure and autoplay restrictions are handled silently.
+- Audio: CC0 interface effects and a CC0 menu loop are loaded by the browser on demand. Effects and music have separate saved volume controls; playback failure and autoplay restrictions are handled silently.
 - Accessibility and mobile: keyboard/touch controls still require real-device verification across all games.
 
 ## Fixed in this branch
@@ -78,5 +78,5 @@ A source review is not a substitute for playing the games in a browser. The curr
 3. Verify victory, loss, draw, restart, repeated sessions, and reward accounting for each game.
 4. Check mobile viewport sizes, touch targets, scrolling, and accidental page gestures.
 5. Finish remaining gameplay design limitations (notably Tetris rotation and a complete tetromino set).
-6. Add a separate music track and music-volume control only after the exact CC0 source file is verified; do not expose a nonfunctional slider.
+6. Manually listen to the selected CC0 music loop and effects on desktop and mobile, then verify volume changes, mute, pause, reload, and browser autoplay handling.
 7. Recheck the full dependency audit before any public deployment.

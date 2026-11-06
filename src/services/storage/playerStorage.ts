@@ -63,6 +63,8 @@ export function normalizeSave(value: unknown): Save {
     played: readNumber(value.played, 0), wins: readNumber(value.wins, 0),
     best, gameStats, history, favorites, sound: typeof value.sound === "boolean" ? value.sound : true,
     effectsVolume: typeof value.effectsVolume === "number" && Number.isFinite(value.effectsVolume) ? Math.max(0, Math.min(1, value.effectsVolume)) : DEFAULT_SAVE.effectsVolume,
+    musicEnabled: typeof value.musicEnabled === "boolean" ? value.musicEnabled : DEFAULT_SAVE.musicEnabled,
+    musicVolume: typeof value.musicVolume === "number" && Number.isFinite(value.musicVolume) ? Math.max(0, Math.min(1, value.musicVolume)) : DEFAULT_SAVE.musicVolume,
     profileName: typeof value.profileName === "string" ? value.profileName.slice(0, 20) : DEFAULT_SAVE.profileName,
     theme: value.theme === "light" ? "light" : "neon",
     skin: validSkins.includes(value.skin as typeof validSkins[number]) && unlockedSkins.includes(value.skin as string) ? value.skin as Save["skin"] : "mint",

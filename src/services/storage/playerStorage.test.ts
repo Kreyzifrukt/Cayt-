@@ -78,6 +78,14 @@ describe("player save normalization", () => {
     expect(normalizeSave({ effectsVolume: "loud" }).effectsVolume).toBe(0.65);
   });
 
+  it("normalizes music enabled state and music volume", () => {
+    expect(normalizeSave({ musicEnabled: true, musicVolume: 0.4 }).musicEnabled).toBe(true);
+    expect(normalizeSave({ musicEnabled: true, musicVolume: 4 }).musicVolume).toBe(1);
+    expect(normalizeSave({ musicEnabled: false, musicVolume: -1 }).musicVolume).toBe(0);
+    expect(normalizeSave({ musicEnabled: "yes", musicVolume: "loud" }).musicEnabled).toBe(false);
+    expect(normalizeSave({ musicEnabled: "yes", musicVolume: "loud" }).musicVolume).toBe(0.18);
+  });
+
   it("chooses a different valid target for Whack-a-Mole", () => {
     for (let current = 0; current < 9; current += 1) {
       const next = randomDifferentIndex(current, 9, () => 0.5);
