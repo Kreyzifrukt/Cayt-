@@ -12,7 +12,7 @@ A source review is not a substitute for playing the games in a browser. The curr
 |---|---|---|
 | Snake | Collision, food placement, terminal state reviewed; full-board completion fixed | Pending |
 | 2048 | Merge, spawn and no-move paths reviewed; continued play after reaching 2048 restored | Pending |
-| Memory | Pair matching and shuffle reviewed; replaced biased random sort with Fisher–Yates | Pending |
+| Memory | Pair matching and shuffle reviewed; uses Fisher–Yates and blocks rapid third-card selections | Pending |
 | XO | Win/draw detection and CPU move selection reviewed | Pending |
 | Reflex | Reaction timer and false-start flow reviewed | Pending |
 | Lights Out | Board generation and cross-toggle logic reviewed | Pending |
@@ -28,7 +28,7 @@ A source review is not a substitute for playing the games in a browser. The curr
 | Whack-a-Mole | Timer and target selection reviewed; repeated same-target exploit fixed | Pending |
 | Math Sprint | Timer, answer parsing and score updates reviewed | Pending |
 | Color Clash | Ink/word selection, timer and one-time completion reviewed | Pending |
-| Pattern Recall | Sequence progression and timeout lifecycle reviewed; pending timeout cleanup fixed | Pending |
+| Pattern Recall | Sequence is shown in ordered flashes; all reveal timers clear on reset/unmount | Pending |
 | Higher or Lower | Comparison rules reviewed; equal cards no longer count as higher/lower | Pending |
 | Typing Rush | Input prefix validation and timer completion reviewed | Pending |
 | Number Hunt | Completion path reviewed; terminal state and replay UI fixed | Pending |
@@ -46,9 +46,9 @@ A source review is not a substitute for playing the games in a browser. The curr
 
 - Completion callback: the application ignores duplicate completions after the active run has been closed.
 - Rewards: XP, coins, daily quest progress, best scores, per-game statistics and recent history are updated together.
-- Draw accounting: the current shared result model stores a win/loss boolean, so draws in XO, Connect Four, Reversi and Blackjack are currently recorded as non-wins. This is an accuracy issue to resolve in a separate result-model migration.
+- Draw accounting: XO, Connect Four, Reversi and Blackjack now report draws separately from losses. The save migration preserves draw totals and per-session outcomes; win-rate calculations exclude draws from the decisive-game denominator.
 - Save compatibility: the new effects-volume setting is normalized and bounded to 0–1; older saves receive the default.
-- Audio: Kenney Interface Sounds (CC0 1.0) and qubodup's Two Simple Game Music Loops menu track (CC0 1.0) are loaded by the browser on demand from pinned public commits. Effects and music have separate saved volume controls; playback failure, network failure and autoplay restrictions are handled silently. The browser needs network access for these remote assets.
+- Audio: Kenney Interface Sounds (CC0 1.0; source: https://kenney.nl/assets/interface-sounds) and qubodup's Two Simple Game Music Loops menu track (CC0 1.0; source: https://opengameart.org/content/two-simple-game-music-loops) are loaded by the browser on demand from pinned public commits. Effects and music have separate saved volume controls; playback failure, network failure and autoplay restrictions are handled silently. Autoplay retries after the first user gesture without clearing the saved preference. The browser needs network access for these remote assets.
 - Accessibility and mobile: keyboard/touch controls still require real-device verification across all games.
 
 ## Fixed in this branch
@@ -65,10 +65,11 @@ A source review is not a substitute for playing the games in a browser. The curr
 - Number Hunt now presents a clear completion state and replay action.
 - Mini Sudoku blocks submission of an incomplete grid.
 - Minesweeper prevents flagging revealed cells, caps flags at the mine count, and ignores board input after completion.
-- Pattern Recall clears its reveal timer when reset or unmounted.
-- Memory uses an unbiased Fisher–Yates shuffle.
+- Pattern Recall shows each target cell sequentially so the required input order is learnable, and clears all reveal timers when reset or unmounted.
+- Memory uses an unbiased Fisher–Yates shuffle and ignores a third rapid card selection before the mismatch lock effect runs.
 - Snake ends cleanly if the player fills the entire board.
 - Higher or Lower treats an equal card as a tie rather than awarding either prediction.
+- Draw outcomes are persisted separately from losses for XO, Connect Four, Reversi and Blackjack.
 - 2048 now allows continued play after reaching the target tile, and only awards the first milestone once; the run can still end when no legal moves remain.
 - Gem Match now generates a board without pre-existing matches and resolves chained matches after a valid swap.
 - Shared click and result sounds use browser audio playback with a persistent effects-volume preference.
