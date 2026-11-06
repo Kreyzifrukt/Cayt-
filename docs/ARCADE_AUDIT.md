@@ -67,6 +67,7 @@ A source review is not a substitute for playing the games in a browser. The curr
 - Memory uses an unbiased Fisher–Yates shuffle.
 - Snake ends cleanly if the player fills the entire board.
 - Higher or Lower treats an equal card as a tie rather than awarding either prediction.
+- Gem Match now generates a board without pre-existing matches and resolves chained matches after a valid swap.
 - Shared click and result sounds use browser audio playback with a persistent effects-volume preference.
 - XP changes receive a small, restrained animation.
 

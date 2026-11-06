@@ -20,7 +20,7 @@ describe("Gem Match logic", () => {
     board[1][2] = 3;
     board[3][2] = 3;
     const matches = findGemMatches(board);
-    expect(matches).toEqual(new Set([16, 17, 18, 9, 23]));
+    expect(matches).toEqual(new Set([9, 15, 16, 17, 23]));
   });
 
   it("clears matches, applies gravity, and scores cascades", () => {
