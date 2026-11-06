@@ -2,11 +2,11 @@ import { useCallback,useEffect,useRef,useState } from "react";
 import { Activity,Play,RotateCcw } from "lucide-react";
 import { Memory,XO,Reflex } from "./games-extra";
 export type GameId="snake"|"2048"|"memory"|"xo"|"reflex";
-type Props={id:GameId;onFinish:(id:GameId,score:number,won:boolean)=>void};
+type Props={id:GameId;onFinish:(id:GameId,score:number,won:boolean)=>void};\ntype CallbackProps={onFinish:(id:GameId,score:number,won:boolean)=>void};
 export function Game({id,onFinish}:Props){if(id==="snake")return <Snake onFinish={onFinish}/>;if(id==="2048")return <Puzzle onFinish={onFinish}/>;if(id==="memory")return <Memory onFinish={onFinish}/>;if(id==="xo")return <XO onFinish={onFinish}/>;return <Reflex onFinish={onFinish}/>;}
 function Toolbar({label,score}:{label:string;score:number}){return <div className="game-toolbar"><span className="game-live"><i/> {label}</span><span className="game-score">SCORE <b>{score}</b></span></div>;}
 type Point={x:number;y:number};
-function Snake({onFinish}:Props){
+function Snake({onFinish}:CallbackProps){
  const [body,setBody]=useState<Point[]>([{x:7,y:8},{x:6,y:8},{x:5,y:8}]);const [food,setFood]=useState<Point>({x:11,y:8});const [dir,setDir]=useState<Point>({x:1,y:0});const [running,setRunning]=useState(false);const [over,setOver]=useState(false);const [score,setScore]=useState(0);const ref=useRef(dir);
  useEffect(()=>{ref.current=dir;},[dir]);
  const reset=()=>{setBody([{x:7,y:8},{x:6,y:8},{x:5,y:8}]);setFood({x:11,y:8});setDir({x:1,y:0});ref.current={x:1,y:0};setScore(0);setOver(false);setRunning(false);};
@@ -18,7 +18,7 @@ function Snake({onFinish}:Props){
 type Board=number[];
 const spawn=(b:Board):Board=>{const empty=b.map((v,i)=>v===0?i:-1).filter(i=>i>=0);if(!empty.length)return b;const n=[...b];n[empty[Math.floor(Math.random()*empty.length)]]=Math.random()<.9?2:4;return n;};
 function merge(line:number[]){const a=line.filter(Boolean);let score=0;for(let i=0;i<a.length-1;i++)if(a[i]===a[i+1]){a[i]*=2;score+=a[i];a.splice(i+1,1);}return{line:[...a,...Array(4-a.length).fill(0)],score};}
-function Puzzle({onFinish}:Props){
+function Puzzle({onFinish}:CallbackProps){
  const [board,setBoard]=useState<Board>(()=>spawn(spawn(Array(16).fill(0))));const [score,setScore]=useState(0);const [status,setStatus]=useState<"playing"|"won"|"over">("playing");
  const move=useCallback((dir:string)=>{if(status!=="playing")return;const next=Array(16).fill(0) as Board;let gained=0;for(let n=0;n<4;n++){const ids=Array.from({length:4},(_,i)=>dir==="left"?n*4+i:dir==="right"?n*4+3-i:dir==="up"?i*4+n:(3-i)*4+n);const r=merge(ids.map(i=>board[i]));gained+=r.score;ids.forEach((id,i)=>next[id]=r.line[i]);}if(next.every((v,i)=>v===board[i]))return;const b=spawn(next),total=score+gained;setBoard(b);setScore(total);if(b.includes(2048)){setStatus("won");onFinish("2048",total,true);}else if(!b.includes(0)&&!b.some((v,i)=>i%4<3&&v===b[i+1]||i<12&&v===b[i+4])){setStatus("over");onFinish("2048",total,false);}},[board,status,score,onFinish]);
  useEffect(()=>{const h=(e:KeyboardEvent)=>{const m:Record<string,string>={ArrowLeft:"left",a:"left",ArrowRight:"right",d:"right",ArrowUp:"up",w:"up",ArrowDown:"down",s:"down"};if(m[e.key]){e.preventDefault();move(m[e.key]);}};window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);},[move]);
