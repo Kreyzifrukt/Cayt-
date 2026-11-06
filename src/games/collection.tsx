@@ -154,7 +154,7 @@ function TypingRush({done}:{done:(s:number,w:boolean)=>void}) {
  const start=()=>{valueRef.current="";deadline.current=Date.now()+30_000;setValue("");setTime(30);setPlaying(true);};
  const reset=()=>{valueRef.current="";deadline.current=0;setValue("");setTime(30);setPlaying(false);};
  const update=(raw:string)=>{if(!playing||Date.now()>=deadline.current)return;const next=raw.toUpperCase();if(!text.startsWith(next))return;valueRef.current=next;setValue(next);if(next===text){setPlaying(false);done(text.length*5,true);}};
- return <Frame title="TYPING RUSH · 30 SECONDS" score={value.length} reset={reset}><p className="typing-prompt">{text}</p><textarea className="collection-input" value={value} onChange={e=>update(e.target.value)} disabled={!playing} placeholder="Start typing the sentence..." rows={3}/><div className="result"><b>{time}s LEFT</b><button onClick={start} disabled={playing}>{time===0?"FINISHED":"START"}</button></div></Frame>;
+ return <Frame title="TYPING RUSH · 30 SECONDS" score={value.length} reset={reset}><p className="typing-prompt">{text}</p><textarea className="collection-input" value={value} onChange={e=>update(e.target.value)} onPaste={e=>e.preventDefault()} disabled={!playing} placeholder="Start typing the sentence..." rows={3}/><div className="result"><b>{time}s LEFT</b><button onClick={start} disabled={playing}>{time===0?"FINISHED":"START"}</button></div></Frame>;
 }
 function NumberHunt({done}:{done:(s:number,w:boolean)=>void}) {
  const shuffleNumbers=()=>{const a=Array.from({length:25},(_,i)=>i+1);for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};

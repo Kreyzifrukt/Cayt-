@@ -57,6 +57,7 @@ A source review is not a substitute for playing the games in a browser. The curr
 - Frogger now detects cars moving into a stationary frog.
 - Blackjack natural 21 checks the dealer's natural 21 before awarding a win, and the dealer's second card stays hidden until the hand ends.
 - Tetris now has all seven standard tetrominoes, clockwise rotation, basic wall kicks, and keyboard/touch rotation controls.
+- Typing Rush rejects pasted text so the timed typing challenge cannot be completed by pasting the prompt.
 - Breakout's ball can reach every brick column.
 - Simon Says uses separated flashes and clears pending timers on reset/unmount.
 - Whack-a-Mole, Math Sprint, Color Clash and Typing Rush now use wall-clock deadlines; score/text updates no longer restart their round timers.
