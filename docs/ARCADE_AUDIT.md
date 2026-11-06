@@ -77,6 +77,6 @@ A source review is not a substitute for playing the games in a browser. The curr
 2. Run full keyboard, pointer and touch playthroughs for all 31 games.
 3. Verify victory, loss, draw, restart, repeated sessions, and reward accounting for each game.
 4. Check mobile viewport sizes, touch targets, scrolling, and accidental page gestures.
-5. Finish remaining gameplay design limitations (notably Tetris rotation and a complete tetromino set).
+5. Review remaining design limits after the Tetris rotation and seven-piece set are exercised in a browser.
 6. Manually listen to the selected CC0 music loop and effects on desktop and mobile, then verify volume changes, mute, pause, reload, and browser autoplay handling.
 7. Recheck the full dependency audit before any public deployment.
