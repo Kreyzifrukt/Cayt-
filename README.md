@@ -31,3 +31,8 @@ npm run build
 ```
 
 All progress is stored in localStorage under `neon-arcade-save`. Clearing browser site data resets the local profile.
+
+
+## Arcade games
+
+The arcade includes eight games: Neon Snake, 2048, Memory Matrix, XO Arena, Reflex Rush, Lights Out, Tap Blitz, and Word Scramble. Player XP, records, and favorites are stored locally in the browser.
