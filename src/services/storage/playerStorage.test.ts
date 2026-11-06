@@ -39,6 +39,6 @@ describe("player save normalization", () => {
 
   it("registers exactly 31 games", () => {
     expect(GAME_IDS).toHaveLength(31);
-    expect(new Set(GAME_IDS).size).toBe(23);
+    expect(new Set(GAME_IDS).size).toBe(31);
   });
 });
