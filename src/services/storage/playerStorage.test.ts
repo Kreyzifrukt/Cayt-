@@ -52,6 +52,13 @@ describe("player save normalization", () => {
     expect(save.history).toEqual([]);
   });
 
+  it("keeps global wins and draws within the total number of games", () => {
+    const save = normalizeSave({ played: 5, wins: 9, draws: 4 });
+    expect(save.played).toBe(5);
+    expect(save.wins).toBe(5);
+    expect(save.draws).toBe(0);
+  });
+
   it("preserves draw outcomes in per-game stats and session history", () => {
     const save = normalizeSave({
       played: 3, wins: 1, draws: 1,
@@ -76,7 +83,7 @@ describe("player save normalization", () => {
         { id: "2048", playedAt: "not-a-date", durationSeconds: 30, score: 90, won: false },
       ],
     });
-    expect(save.gameStats.snake).toEqual({ played: 5, wins: 3, totalDurationSeconds: 240, bestScore: 90 });
+    expect(save.gameStats.snake).toEqual({ played: 5, wins: 3, draws: 0, totalDurationSeconds: 240, bestScore: 90 });
     expect(save.gameStats.tetris).toEqual({ played: 0, wins: 0, totalDurationSeconds: 0, bestScore: 0 });
     expect(save.history).toHaveLength(1);
     expect(save.history[0].id).toBe("snake");

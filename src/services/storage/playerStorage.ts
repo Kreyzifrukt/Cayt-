@@ -47,10 +47,13 @@ export function normalizeSave(value: unknown): Save {
         playedAt: entry.playedAt as string,
         durationSeconds: readNumber(entry.durationSeconds, 0),
         score: readNumber(entry.score, 0),
-        won: entry.won as boolean,
+        won: entry.won === true && entry.draw !== true,
         draw: entry.draw === true,
       }))
     : [];
+  const played = readNumber(value.played, 0);
+  const wins = Math.min(played, readNumber(value.wins, 0));
+  const draws = Math.min(Math.max(0, played - wins), readNumber(value.draws, 0));
   const validSkins = ["mint", "violet", "ember", "ice"] as const;
   const unlockedSkins = Array.isArray(value.unlockedSkins)
     ? [...new Set(value.unlockedSkins.filter((skin): skin is string => typeof skin === "string" && validSkins.includes(skin as typeof validSkins[number])))]
@@ -62,7 +65,7 @@ export function normalizeSave(value: unknown): Save {
   return {
     language: value.language === "en" ? "en" : "uk",
     xp: readNumber(value.xp, 0), coins: readNumber(value.coins, 0),
-    played: readNumber(value.played, 0), wins: readNumber(value.wins, 0), draws: Math.min(Math.max(0, readNumber(value.played, 0) - readNumber(value.wins, 0)), readNumber(value.draws, 0)),
+    played, wins, draws,
     best, gameStats, history, favorites, sound: typeof value.sound === "boolean" ? value.sound : true,
     effectsVolume: typeof value.effectsVolume === "number" && Number.isFinite(value.effectsVolume) ? Math.max(0, Math.min(1, value.effectsVolume)) : DEFAULT_SAVE.effectsVolume,
     musicEnabled: typeof value.musicEnabled === "boolean" ? value.musicEnabled : DEFAULT_SAVE.musicEnabled,
