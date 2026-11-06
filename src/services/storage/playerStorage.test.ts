@@ -37,8 +37,8 @@ describe("player save normalization", () => {
     expect(save.unlockedSkins).toEqual(["mint", "ember"]);
   });
 
-  it("registers exactly 23 games", () => {
-    expect(GAME_IDS).toHaveLength(23);
+  it("registers exactly 31 games", () => {
+    expect(GAME_IDS).toHaveLength(31);
     expect(new Set(GAME_IDS).size).toBe(23);
   });
 });
