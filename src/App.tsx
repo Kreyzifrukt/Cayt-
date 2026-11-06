@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { BarChart3, ChevronRight, Crown, Gamepad2, Home, Menu, Sparkles, Trophy, Volume2, VolumeX, Settings, Download, Upload, Maximize2, RotateCcw } from "lucide-react";
+import { BarChart3, ChevronRight, Crown, Gamepad2, Home, Menu, Sparkles, Shield, Trophy, Volume2, VolumeX, Settings, Download, Upload, Maximize2, RotateCcw } from "lucide-react";
 import { Game } from "./games";
 import type { GameId } from "./types/game";
 import { Dashboard, games } from "./components/dashboard";
