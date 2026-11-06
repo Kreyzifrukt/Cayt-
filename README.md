@@ -1,6 +1,6 @@
 # NEON ARCADE
 
-A responsive, local-first arcade hub built with React, TypeScript and Vite. **23 playable games** share one player profile, XP progression, coins, achievements, daily quests, personal records and favorites.
+A responsive, local-first arcade hub built with React, TypeScript and Vite. **31 playable games** share one player profile, XP progression, coins, achievements, daily quests, personal records and favorites.
 
 ## Games
 
@@ -30,6 +30,16 @@ A responsive, local-first arcade hub built with React, TypeScript and Vite. **23
 - **Typing Rush** — timed typing challenge.
 - **Number Hunt** — find numbers in ascending order.
 - **Mini Sudoku** — compact 4×4 logic puzzle.
+
+### Retro classics
+- **15-Puzzle** — a sliding puzzle shuffled only through legal moves.
+- **Sokoban** — push crates onto storage points without trapping them.
+- **Reversi** — an 8×8 disc-capture duel against a positional CPU.
+- **Mastermind** — crack a four-color code using exact/misplaced feedback.
+- **Blackjack** — a single-player 21 round with ace valuation and dealer rules.
+- **Frogger** — cross moving traffic lanes with limited lives.
+- **Gem Match** — swap adjacent gems and reach a score target.
+- **Maze Runner** — find the key and navigate a compact maze to the exit.
 
 ## Player features
 - XP, levels, coins, unlockable color palettes, personal bests and favorites
