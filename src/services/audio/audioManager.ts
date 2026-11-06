@@ -9,6 +9,8 @@ const AUDIO_FILES = {
 
 export type ArcadeSound = keyof typeof AUDIO_FILES;
 
+const audioCache = new Map<ArcadeSound, HTMLAudioElement>();
+
 /**
  * Kenney Interface Sounds, CC0 1.0.
  * Small OGG effects are loaded by the browser on demand.
@@ -17,9 +19,14 @@ export function playArcadeSound(sound: ArcadeSound, volume = 0.65): void {
   if (typeof window === "undefined" || typeof Audio === "undefined") return;
   const level = Math.max(0, Math.min(1, volume));
   if (level === 0) return;
-  const audio = new Audio(`${AUDIO_BASE}${AUDIO_FILES[sound]}`);
-  audio.preload = "none";
+  let audio = audioCache.get(sound);
+  if (!audio) {
+    audio = new Audio(`${AUDIO_BASE}${AUDIO_FILES[sound]}`);
+    audio.preload = "none";
+    audioCache.set(sound, audio);
+  }
   audio.volume = level;
+  audio.currentTime = 0;
   void audio.play().catch(() => {
     // Audio can be blocked by autoplay policy or unavailable offline.
   });
