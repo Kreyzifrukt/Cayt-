@@ -11,7 +11,7 @@ A source review is not a substitute for playing the games in a browser. The curr
 | Game | Source-level review | Interactive browser test |
 |---|---|---|
 | Snake | Collision, food placement, terminal state reviewed; full-board completion fixed | Pending |
-| 2048 | Merge, spawn, no-move and win-state paths reviewed | Pending |
+| 2048 | Merge, spawn and no-move paths reviewed; continued play after reaching 2048 restored | Pending |
 | Memory | Pair matching and shuffle reviewed; replaced biased random sort with Fisher–Yates | Pending |
 | XO | Win/draw detection and CPU move selection reviewed | Pending |
 | Reflex | Reaction timer and false-start flow reviewed | Pending |
@@ -69,6 +69,7 @@ A source review is not a substitute for playing the games in a browser. The curr
 - Memory uses an unbiased Fisher–Yates shuffle.
 - Snake ends cleanly if the player fills the entire board.
 - Higher or Lower treats an equal card as a tie rather than awarding either prediction.
+- 2048 now allows continued play after reaching the target tile, and only awards the first milestone once; the run can still end when no legal moves remain.
 - Gem Match now generates a board without pre-existing matches and resolves chained matches after a valid swap.
 - Shared click and result sounds use browser audio playback with a persistent effects-volume preference.
 - XP changes receive a small, restrained animation.
