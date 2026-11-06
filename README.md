@@ -52,7 +52,7 @@ A responsive, local-first arcade hub built with React, TypeScript and Vite. **31
 
 ## Development
 
-Requires Node.js 20.19+ or 22.12+.
+Requires Node.js 22.12+ (or Node.js 24+). This matches the current Vitest 5 toolchain.
 
 ```bash
 npm install
