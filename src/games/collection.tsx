@@ -53,10 +53,10 @@ function Tetris({ done }: { done:(s:number,w:boolean)=>void }) {
 }
 function Breakout({done}:{done:(s:number,w:boolean)=>void}) {
  const [paddle,setPaddle]=useState(4);const [ball,setBall]=useState({x:4,y:8,dx:1,dy:-1});const [bricks,setBricks]=useState(()=>Array.from({length:30},(_,i)=>i));const [lost,setLost]=useState(false);const [won,setWon]=useState(false);
- useEffect(()=>{if(lost||won)return;const t=window.setInterval(()=>setBall(b=>{let x=b.x+b.dx,y=b.y+b.dy,dx=b.dx,dy=b.dy;if(x<0||x>8)dx=-dx;if(y<0)dy=-dy;if(y>=11){if(Math.abs(x-paddle)<=1){dy=-1;}else{setLost(true);done(bricks.length===0?500:30,false);return b;}}const hit=bricks.find(i=>Math.floor(i/10)===Math.floor(y/2)&&i%10===Math.round(x));if(hit!==undefined){setBricks(v=>v.filter(n=>n!==hit));dy=-dy;}return{x:x<0||x>8?x+dx*2:x,y:y>=11?10:y,dx,dy};}),180);return()=>window.clearInterval(t);},[paddle,lost,won,bricks,done]);
+ useEffect(()=>{if(lost||won)return;const t=window.setInterval(()=>setBall(b=>{let x=b.x+b.dx,y=b.y+b.dy,dx=b.dx,dy=b.dy;if(x<0||x>9)dx=-dx;if(y<0)dy=-dy;if(y>=11){if(Math.abs(x-paddle)<=1){dy=-1;}else{setLost(true);done(bricks.length===0?500:30,false);return b;}}const hit=bricks.find(i=>Math.floor(i/10)===Math.floor(y/2)&&i%10===Math.round(x));if(hit!==undefined){setBricks(v=>v.filter(n=>n!==hit));dy=-dy;}return{x:x<0||x>9?x+dx*2:x,y:y>=11?10:y,dx,dy};}),180);return()=>window.clearInterval(t);},[paddle,lost,won,bricks,done]);
  useEffect(()=>{if(!bricks.length&&!won){setWon(true);done(500,true);}},[bricks,won,done]);
  const reset=()=>{setPaddle(4);setBall({x:4,y:8,dx:1,dy:-1});setBricks(Array.from({length:30},(_,i)=>i));setLost(false);setWon(false);};
- return <Frame title="BREAKOUT · MOVE THE PADDLE" score={30-bricks.length} reset={reset}><div className="breakout-board">{Array.from({length:30},(_,i)=><i key={i} className={bricks.includes(i)?"brick":""}/>)}<span className="breakout-ball" style={{left:`${ball.x*10+5}%`,top:`${ball.y*8+4}%`}}/><span className="breakout-paddle" style={{left:`${paddle*10+5}%`}}/></div><div className="game-action-row"><button className="secondary" onClick={()=>setPaddle(p=>Math.max(0,p-1))}>LEFT</button><button className="secondary" onClick={()=>setPaddle(p=>Math.min(8,p+1))}>RIGHT</button></div>{lost&&<div className="result"><b>THE BALL GOT AWAY.</b></div>}</Frame>;
+ return <Frame title="BREAKOUT · MOVE THE PADDLE" score={30-bricks.length} reset={reset}><div className="breakout-board">{Array.from({length:30},(_,i)=><i key={i} className={bricks.includes(i)?"brick":""}/>)}<span className="breakout-ball" style={{left:`${ball.x*10+5}%`,top:`${ball.y*8+4}%`}}/><span className="breakout-paddle" style={{left:`${paddle*10+5}%`}}/></div><div className="game-action-row"><button className="secondary" onClick={()=>setPaddle(p=>Math.max(0,p-1))}>LEFT</button><button className="secondary" onClick={()=>setPaddle(p=>Math.min(9,p+1))}>RIGHT</button></div>{lost&&<div className="result"><b>THE BALL GOT AWAY.</b></div>}</Frame>;
 }
 function Pong({done}:{done:(s:number,w:boolean)=>void}) {
  const [ball,setBall]=useState({x:5,y:5,dx:1,dy:1});
@@ -84,11 +84,23 @@ function Pong({done}:{done:(s:number,w:boolean)=>void}) {
  </Frame>;
 }
 function Simon({done}:{done:(s:number,w:boolean)=>void}) {
- const [sequence,setSequence]=useState<number[]>([]);const [input,setInput]=useState<number[]>([]);const [active,setActive]=useState(-1);const [started,setStarted]=useState(false);const [failed,setFailed]=useState(false);const [completed,setCompleted]=useState(false);
- const next=()=>{const s=[...sequence,Math.floor(Math.random()*4)];setSequence(s);setInput([]);let i=0;const t=window.setInterval(()=>{setActive(s[i]);i++;if(i>=s.length){window.clearInterval(t);window.setTimeout(()=>setActive(-1),350);}},650);};
- const begin=()=>{const first=Math.floor(Math.random()*4);setSequence([first]);setInput([]);setStarted(true);setFailed(false);setActive(first);window.setTimeout(()=>setActive(-1),500);};
- const tap=(n:number)=>{if(!started||failed)return;const v=[...input,n];setInput(v);if(sequence[v.length-1]!==n){setFailed(true);done(sequence.length*50,false);return;}if(v.length===sequence.length){if(sequence.length>=12){done(600,true);setStarted(false);setCompleted(true);}else window.setTimeout(next,500);}};
- return <Frame title="SIMON SAYS · REPEAT THE PATTERN" score={sequence.length} reset={()=>{setSequence([]);setInput([]);setStarted(false);setFailed(false);setCompleted(false);setActive(-1);}}><div className="simon-grid">{[0,1,2,3].map(n=><button key={n} className={active===n?"simon-active":""} onClick={()=>tap(n)} disabled={!started||active!==-1}/>)}</div>{!started||failed||completed?<div className="result"><b>{completed?"12 ROUNDS CLEARED":failed?"PATTERN BROKEN": "MEMORIZE THE LIGHTS"}</b><button onClick={begin}> {failed?"TRY AGAIN":"START"}</button></div>:<p className="collection-note">Watch the sequence, then repeat it.</p>}</Frame>;
+ const [sequence,setSequence]=useState<number[]>([]);const [input,setInput]=useState<number[]>([]);const [active,setActive]=useState(-1);const [started,setStarted]=useState(false);const [failed,setFailed]=useState(false);const [completed,setCompleted]=useState(false);const [playback,setPlayback]=useState(false);
+ const timers=useRef<number[]>([]);
+ const clearTimers=()=>{timers.current.forEach(timer=>window.clearTimeout(timer));timers.current=[];};
+ useEffect(()=>()=>clearTimers(),[]);
+ const show=(values:number[])=>{
+  clearTimers();setPlayback(true);setActive(-1);
+  values.forEach((value,index)=>{
+   timers.current.push(window.setTimeout(()=>setActive(value),index*520));
+   timers.current.push(window.setTimeout(()=>setActive(-1),index*520+300));
+  });
+  timers.current.push(window.setTimeout(()=>setPlayback(false),values.length*520));
+ };
+ const next=()=>{const s=[...sequence,Math.floor(Math.random()*4)];setSequence(s);setInput([]);show(s);};
+ const begin=()=>{clearTimers();const first=Math.floor(Math.random()*4);setSequence([first]);setInput([]);setStarted(true);setFailed(false);setCompleted(false);show([first]);};
+ const tap=(n:number)=>{if(!started||failed||playback)return;const v=[...input,n];setInput(v);if(sequence[v.length-1]!==n){setFailed(true);setStarted(false);done(sequence.length*50,false);return;}if(v.length===sequence.length){if(sequence.length>=12){done(600,true);setStarted(false);setCompleted(true);}else timers.current.push(window.setTimeout(next,500));}};
+ const reset=()=>{clearTimers();setSequence([]);setInput([]);setStarted(false);setFailed(false);setCompleted(false);setPlayback(false);setActive(-1);};
+ return <Frame title="SIMON SAYS · REPEAT THE PATTERN" score={sequence.length} reset={reset}><div className="simon-grid">{[0,1,2,3].map(n=><button key={n} className={active===n?"simon-active":""} onClick={()=>tap(n)} disabled={!started||playback}/>)}</div>{!started||failed||completed?<div className="result"><b>{completed?"12 ROUNDS CLEARED":failed?"PATTERN BROKEN": "MEMORIZE THE LIGHTS"}</b><button onClick={begin}> {failed?"TRY AGAIN":"START"}</button></div>:<p className="collection-note">{playback?"Watch the sequence, then repeat it.":"Repeat the sequence."}</p>}</Frame>;
 }
 function Hangman({done}:{done:(s:number,w:boolean)=>void}) {
  const words=["ORBIT","PIXEL","VECTOR","NEBULA","CIRCUIT"];const [word,setWord]=useState(words[Math.floor(Math.random()*words.length)]);const [guessed,setGuessed]=useState<string[]>([]);const misses=guessed.filter(c=>!word.includes(c)).length;const won=word.split("").every(c=>guessed.includes(c));
@@ -129,7 +141,7 @@ function PatternRecall({done}:{done:(s:number,w:boolean)=>void}) {
 }
 function HigherLower({done}:{done:(s:number,w:boolean)=>void}) {
  const [current,setCurrent]=useState(7);const [next,setNext]=useState(0);const [streak,setStreak]=useState(0);const [over,setOver]=useState(false);
- const guess=(high:boolean)=>{if(over)return;const n=1+Math.floor(Math.random()*13);setNext(n);if((high&&n>=current)||(!high&&n<=current)){setStreak(s=>s+1);setCurrent(n);if(streak>=9){setOver(true);done(500,true);}}else{setOver(true);done(streak*40,false);}};
+ const guess=(high:boolean)=>{if(over)return;const n=1+Math.floor(Math.random()*13);setNext(n);if(n===current)return;if((high&&n>current)||(!high&&n<current)){setStreak(s=>s+1);setCurrent(n);if(streak>=9){setOver(true);done(500,true);}}else{setOver(true);done(streak*40,false);}};
  return <Frame title="HIGHER OR LOWER · CARD GUESS" score={streak} reset={()=>{setCurrent(7);setNext(0);setStreak(0);setOver(false);}}><div className="card-number">{next||current}</div><p className="collection-note">Will the next card be higher or lower?</p><div className="game-action-row"><button className="secondary" onClick={()=>guess(false)} disabled={over}>LOWER</button><button className="secondary" onClick={()=>guess(true)} disabled={over}>HIGHER</button></div>{over&&<div className="result"><b>{streak} CORRECT GUESSES</b><button onClick={()=>{setCurrent(7);setNext(0);setStreak(0);setOver(false);}}>DEAL AGAIN</button></div>}</Frame>;
 }
 function TypingRush({done}:{done:(s:number,w:boolean)=>void}) {

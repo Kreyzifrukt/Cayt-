@@ -4,7 +4,7 @@ import type { GameId } from "../types/game";
 type Props={onFinish:(id:GameId,score:number,won:boolean)=>void};
 const symbols=["✦","◆","●","▲","✚","⬟","☾","✿"];
 export function Memory({onFinish}:Props){
- const shuffle=()=>[...symbols,...symbols].sort(()=>Math.random()-.5);
+ const shuffle=()=>{const cards=[...symbols,...symbols];for(let i=cards.length-1;i>0;i-=1){const j=Math.floor(Math.random()*(i+1));[cards[i],cards[j]]=[cards[j],cards[i]];}return cards;};
  const [cards,setCards]=useState(shuffle);const [flipped,setFlipped]=useState<number[]>([]);const [matched,setMatched]=useState<number[]>([]);const [moves,setMoves]=useState(0);const [locked,setLocked]=useState(false);const [done,setDone]=useState(false);
  useEffect(()=>{if(flipped.length!==2)return;setLocked(true);const t=window.setTimeout(()=>{if(cards[flipped[0]]===cards[flipped[1]]){const next=[...matched,...flipped];setMatched(next);if(next.length===16){setDone(true);onFinish("memory",Math.max(10,1000-moves*15),true);}}setFlipped([]);setLocked(false);},650);return()=>window.clearTimeout(t);},[flipped,cards,matched,moves,onFinish]);
  const pick=(i:number)=>{if(locked||flipped.includes(i)||matched.includes(i)||done)return;const next=[...flipped,i];setFlipped(next);if(next.length===2)setMoves(m=>m+1);};
