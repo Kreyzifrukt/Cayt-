@@ -119,3 +119,15 @@ export function resolveGemCascades(
 
   return { board, cleared, cascades };
 }
+
+
+/**
+ * Keep a resolved board playable. A random refill can leave no legal swaps,
+ * even when the initial board was generated correctly.
+ */
+export function ensurePlayableGemBoard(
+  board: GemGrid,
+  random = Math.random,
+): GemGrid {
+  return hasPossibleGemMove(board) ? board : createGemBoard(random);
+}

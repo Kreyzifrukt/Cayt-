@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createGemBoard, findGemMatches, hasPossibleGemMove, resolveGemCascades } from "./matchThreeLogic";
+import { createGemBoard, ensurePlayableGemBoard, findGemMatches, hasPossibleGemMove, resolveGemCascades } from "./matchThreeLogic";
 
 describe("Gem Match logic", () => {
   it("generates a board without automatic matches", () => {
@@ -44,3 +44,19 @@ describe("Gem Match logic", () => {
     expect(result.board.flat().every((gem) => gem >= 0 && gem < 5)).toBe(true);
   });
 });
+
+
+  it("replaces a dead board after a refill leaves no legal swaps", () => {
+    const deadBoard = Array.from({ length: 7 }, (_, row) =>
+      Array.from({ length: 7 }, (_, column) => (row + column) % 5),
+    );
+
+    expect(findGemMatches(deadBoard).size).toBe(0);
+    expect(hasPossibleGemMove(deadBoard)).toBe(false);
+
+    const playable = ensurePlayableGemBoard(deadBoard, () => 0.42);
+
+    expect(playable).not.toBe(deadBoard);
+    expect(findGemMatches(playable).size).toBe(0);
+    expect(hasPossibleGemMove(playable)).toBe(true);
+  });
