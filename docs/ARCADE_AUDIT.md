@@ -55,9 +55,10 @@ A source review is not a substitute for playing the games in a browser. The curr
 
 - Reversi no longer gets stuck when the player must pass; the CPU continues until the player can move or the game ends.
 - Frogger now detects cars moving into a stationary frog.
-- Blackjack natural 21 checks the dealer's natural 21 before awarding a win.
+- Blackjack natural 21 checks the dealer's natural 21 before awarding a win, and the dealer's second card stays hidden until the hand ends.
 - Breakout's ball can reach every brick column.
 - Simon Says uses separated flashes and clears pending timers on reset/unmount.
+- Whack-a-Mole, Math Sprint, Color Clash and Typing Rush now use wall-clock deadlines; score/text updates no longer restart their round timers.
 - Whack-a-Mole cannot randomly keep the same target after a hit.
 - Number Hunt now presents a clear completion state and replay action.
 - Mini Sudoku blocks submission of an incomplete grid.
