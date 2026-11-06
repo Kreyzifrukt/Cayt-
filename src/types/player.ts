@@ -2,6 +2,21 @@ import type { GameId } from "./game";
 
 export type Language = "en" | "uk";
 
+export interface GameStatistics {
+  played: number;
+  wins: number;
+  totalDurationSeconds: number;
+  bestScore: number;
+}
+
+export interface GameSession {
+  id: GameId;
+  playedAt: string;
+  durationSeconds: number;
+  score: number;
+  won: boolean;
+}
+
 export interface Save {
   language: Language;
   xp: number;
@@ -9,6 +24,8 @@ export interface Save {
   played: number;
   wins: number;
   best: Partial<Record<GameId, number>>;
+  gameStats: Partial<Record<GameId, GameStatistics>>;
+  history: GameSession[];
   favorites: GameId[];
   sound: boolean;
   profileName: string;
@@ -22,7 +39,7 @@ export interface Save {
 
 export const DEFAULT_SAVE: Save = {
   language: "uk",
-  xp: 0, coins: 0, played: 0, wins: 0, best: {}, favorites: [],
+  xp: 0, coins: 0, played: 0, wins: 0, best: {}, gameStats: {}, history: [], favorites: [],
   sound: true, profileName: "PLAYER ONE", theme: "neon", skin: "mint", unlockedSkins: ["mint"],
   dailyDate: "", dailyRuns: 0, dailyClaimed: false,
 };

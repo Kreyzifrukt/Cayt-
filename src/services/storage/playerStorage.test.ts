@@ -43,6 +43,33 @@ describe("player save normalization", () => {
     expect(save.unlockedSkins).toEqual(["mint", "ember"]);
   });
 
+  it("migrates old saves without inventing per-game history", () => {
+    const save = normalizeSave({ played: 18, wins: 7, best: { snake: 90 } });
+    expect(save.played).toBe(18);
+    expect(save.wins).toBe(7);
+    expect(save.gameStats).toEqual({});
+    expect(save.history).toEqual([]);
+  });
+
+  it("validates game statistics and recent session history", () => {
+    const save = normalizeSave({
+      gameStats: {
+        snake: { played: 5, wins: 3, totalDurationSeconds: 240, bestScore: 90 },
+        tetris: { played: -2, wins: 10, totalDurationSeconds: -1, bestScore: "bad" },
+        unknown: { played: 100, wins: 100 },
+      },
+      history: [
+        { id: "snake", playedAt: "2026-11-06T10:00:00.000Z", durationSeconds: 30, score: 90, won: true },
+        { id: "unknown", playedAt: "2026-11-06T10:00:00.000Z", durationSeconds: 30, score: 90, won: true },
+        { id: "2048", playedAt: "not-a-date", durationSeconds: 30, score: 90, won: false },
+      ],
+    });
+    expect(save.gameStats.snake).toEqual({ played: 5, wins: 3, totalDurationSeconds: 240, bestScore: 90 });
+    expect(save.gameStats.tetris).toEqual({ played: 0, wins: 0, totalDurationSeconds: 0, bestScore: 0 });
+    expect(save.history).toHaveLength(1);
+    expect(save.history[0].id).toBe("snake");
+  });
+
   it("registers exactly 31 games", () => {
     expect(GAME_IDS).toHaveLength(31);
     expect(new Set(GAME_IDS).size).toBe(31);
