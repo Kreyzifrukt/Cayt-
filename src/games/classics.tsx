@@ -2,6 +2,7 @@ import { useCallback,useEffect,useRef,useState } from "react";
 import { Activity,Play,RotateCcw } from "lucide-react";
 import { Memory,XO,Reflex } from "./extra";
 import type { GameId } from "../types/game";
+import { has2048Moves, move2048, type PuzzleDirection } from "./puzzleLogic";
 export type { GameId } from "../types/game";
 type Props={id:GameId;onFinish:(id:GameId,score:number,won:boolean,draw?:boolean)=>void};
 type CallbackProps={onFinish:(id:GameId,score:number,won:boolean,draw?:boolean)=>void};
@@ -19,11 +20,10 @@ function Snake({onFinish}:CallbackProps){
 }
 type Board=number[];
 const spawn=(b:Board):Board=>{const empty=b.map((v,i)=>v===0?i:-1).filter(i=>i>=0);if(!empty.length)return b;const n=[...b];n[empty[Math.floor(Math.random()*empty.length)]]=Math.random()<.9?2:4;return n;};
-function merge(line:number[]){const a=line.filter(Boolean);let score=0;for(let i=0;i<a.length-1;i++)if(a[i]===a[i+1]){a[i]*=2;score+=a[i];a.splice(i+1,1);}return{line:[...a,...Array(4-a.length).fill(0)],score};}
 function Puzzle({onFinish}:CallbackProps){
  const [board,setBoard]=useState<Board>(()=>spawn(spawn(Array(16).fill(0))));const [score,setScore]=useState(0);const [status,setStatus]=useState<"playing"|"won"|"over">("playing");const wonRef=useRef(false);
- const move=useCallback((dir:string)=>{if(status==="over")return;const next=Array(16).fill(0) as Board;let gained=0;for(let n=0;n<4;n++){const ids=Array.from({length:4},(_,i)=>dir==="left"?n*4+i:dir==="right"?n*4+3-i:dir==="up"?i*4+n:(3-i)*4+n);const r=merge(ids.map(i=>board[i]));gained+=r.score;ids.forEach((id,i)=>next[id]=r.line[i]);}if(next.every((v,i)=>v===board[i]))return;const b=spawn(next),total=score+gained;setBoard(b);setScore(total);const reachedGoal=b.includes(2048)&&!wonRef.current;const noMoves=!b.includes(0)&&!b.some((v,i)=>i%4<3&&v===b[i+1]||i<12&&v===b[i+4]);if(reachedGoal){wonRef.current=true;setStatus("won");onFinish("2048",total,true);}if(noMoves){setStatus("over");if(!reachedGoal)onFinish("2048",total,false);}},[board,status,score,onFinish]);
- useEffect(()=>{const h=(e:KeyboardEvent)=>{const m:Record<string,string>={ArrowLeft:"left",a:"left",ArrowRight:"right",d:"right",ArrowUp:"up",w:"up",ArrowDown:"down",s:"down"};if(m[e.key]){e.preventDefault();move(m[e.key]);}};window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);},[move]);
+ const move=useCallback((dir:PuzzleDirection)=>{if(status==="over")return;const result=move2048(board,dir);if(!result.changed)return;const b=spawn(result.board),total=score+result.score;setBoard(b);setScore(total);const reachedGoal=b.includes(2048)&&!wonRef.current;const noMoves=!has2048Moves(b);if(reachedGoal){wonRef.current=true;setStatus("won");onFinish("2048",total,true);}if(noMoves){setStatus("over");if(!reachedGoal)onFinish("2048",total,false);}},[board,status,score,onFinish]);
+ useEffect(()=>{const h=(e:KeyboardEvent)=>{const m:Record<string,PuzzleDirection>={ArrowLeft:"left",a:"left",ArrowRight:"right",d:"right",ArrowUp:"up",w:"up",ArrowDown:"down",s:"down"};if(m[e.key]){e.preventDefault();move(m[e.key]);}};window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);},[move]);
  const reset=()=>{wonRef.current=false;setBoard(spawn(spawn(Array(16).fill(0))));setScore(0);setStatus("playing");};
  return <div className="engine"><Toolbar label={status==="playing"?"MERGE THE TILES":status==="won"?"2048 REACHED":"NO MORE MOVES"} score={score}/><div className="board-2048" aria-label="2048 board">{board.map((v,i)=><div key={i} className={`tile tile-${Math.min(v,2048)}`}>{v||""}</div>)}</div><div className="mobile-game-controls" aria-label="2048 controls"><button onClick={()=>move("up")}>↑</button><div><button onClick={()=>move("left")}>←</button><button onClick={()=>move("down")}>↓</button><button onClick={()=>move("right")}>→</button></div></div><div className="game-action-row"><button className="secondary" onClick={reset}><RotateCcw size={14}/> NEW GAME</button><span>ARROWS / WASD TO MOVE</span></div>{status!=="playing"&&<div className="result"><b>{status==="won"?"LEGENDARY TILE UNLOCKED.":"NO MORE MOVES."}</b><button onClick={reset}>PLAY AGAIN</button></div>}</div>;
 }
