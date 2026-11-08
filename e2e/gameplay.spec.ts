@@ -404,7 +404,7 @@ test.describe("mobile touch controls", () => {
 
   test("mobile Frogger control accepts a real touch event", async ({ page }) => {
     const { root, runtimeErrors } = await openGame(page, 28);
-    await root.locator(".retro-pad").getByRole("button", { name: "Move up" }).tap();
+    await root.locator(".retro-pad").getByRole("button", { name: "↑" }).tap();
     const frogIndex = await root.locator(".frogger-board .frog").evaluate((element) =>
       Array.from(element.parentElement!.children).indexOf(element),
     );
@@ -418,7 +418,7 @@ test.describe("mobile touch controls", () => {
 
   test("mobile Sokoban control accepts a real touch event", async ({ page }) => {
     const { root, runtimeErrors } = await openGame(page, 24);
-    await root.locator(".retro-pad").getByRole("button", { name: "↑" }).tap();
+    await root.locator(".retro-pad").getByRole("button", { name: "Move up" }).tap();
     await expect(root.locator(".game-score b")).toHaveText("1");
     expectNoRuntimeErrors(runtimeErrors);
   });
