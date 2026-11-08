@@ -81,8 +81,18 @@ export async function startArcadeMusic(volume = musicVolume): Promise<boolean> {
     backgroundMusic.preload = "none";
   }
 
+  // A media element can enter an error state after playback has already started
+  // (for example, when the network drops). Reset it before the next user-gesture retry.
+  if (backgroundMusic.error) {
+    try {
+      backgroundMusic.load();
+    } catch {
+      return false;
+    }
+  }
+
   backgroundMusic.volume = musicVolume;
-  if (!backgroundMusic.paused) return true;
+  if (!backgroundMusic.paused && !backgroundMusic.error) return true;
 
   try {
     await backgroundMusic.play();
