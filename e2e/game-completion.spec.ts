@@ -498,17 +498,14 @@ test("Color Clash finishes after fifteen seconds with eight correct ink choices"
 });
 
 
-test("Sokoban solves the complete three-crate level through keyboard controls", async ({ page }) => {
+test("Sokoban solves a generated three-crate level through keyboard controls", async ({ page }) => {
   const { root, runtimeErrors } = await openGame(page, 24);
-  const solution = "URULDDRRURUUULLLULLDDRULUR";
-  for (const move of solution) {
-    await page.keyboard.press(
-      move === "U" ? "ArrowUp" :
-      move === "D" ? "ArrowDown" :
-      move === "L" ? "ArrowLeft" : "ArrowRight",
-    );
+  const solution = await solveSokoban(root);
+  expect(solution.length).toBeGreaterThan(0);
+  for (const key of solution) {
+    await page.keyboard.press(key);
   }
-  await expect(root.locator(".result b")).toHaveText("ALL CRATES STORED");
+  await expect(root.locator(".result b")).toHaveText("LEVEL CLEARED · NEW LEVEL READY");
   assertNoRuntimeErrors(runtimeErrors);
 });
 
