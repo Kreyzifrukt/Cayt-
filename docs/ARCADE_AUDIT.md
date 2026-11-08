@@ -4,7 +4,7 @@
 
 This audit covers all 31 game modules, the shared completion/reward flow, local save normalization, audio feedback, and responsive controls.
 
-A source review is not a substitute for exercising the games in a browser. CI now runs mount checks and a dedicated Playwright interaction suite covering all 31 games. A second suite completes full win/loss paths in selected games, including five logic/puzzle games, three board games, and deterministic word/card scenarios. Number Hunt is completed end to end with its persisted reward record checked. This does not amount to a complete victory/loss/draw playthrough of every game or replace physical-device and audio verification.
+A source review is not a substitute for exercising the games in a browser. CI now runs mount checks and a dedicated Playwright interaction suite covering all 31 games. A second suite completes full win/loss paths in selected games, including five logic/puzzle games, three board games, and deterministic word/card scenarios. Number Hunt is completed end to end across all 100 targets; the timer display, final time, persisted score and reward record are checked. This does not amount to a complete victory/loss/draw playthrough of every game or replace physical-device and audio verification.
 
 ## Game inventory
 
@@ -46,7 +46,7 @@ A source review is not a substitute for exercising the games in a browser. CI no
 
 - Playwright mounts all 31 game components through the Vite development server and runs at least one actual browser interaction for each game. Uncaught browser runtime errors fail the tests.
 - A separate completion suite solves Lights Out, Word Scramble, Mini Sudoku, Maze Runner and Sokoban from their rendered state; plays XO, Connect Four and Reversi to terminal positions; and verifies full win/loss paths for Hangman, Higher or Lower and Mastermind.
-- Number Hunt is played through all 25 ordered targets; the final XP, coins, wins and history entry are verified in local storage.
+- Number Hunt is played through all 100 ordered targets; its elapsed-time display and final time are checked alongside XP, coins, wins and the history entry in local storage.
 - Memory is cleared through all eight matching pairs; Simon Says and Pattern Recall are completed through their final rounds using deterministic sequences and the browser clock. Reflex, Tap Blitz, Whack-a-Mole, Math Sprint and Color Clash are driven through their timed terminal states.
 - Sokoban and Maze Runner are played to completion; Blackjack resolves a full dealer stand/draw outcome; Frogger completes three safe crossings under a frozen traffic clock.
 - 15-Puzzle is solved from a deterministic 220-step legal shuffle using 20 legal moves; the final solved board and completion result are asserted.
@@ -133,3 +133,11 @@ A source review is not a substitute for exercising the games in a browser. CI no
 - Gem Match now gives immediate feedback when a selected swap is non-adjacent or does not create a match; the E2E test finds and performs a valid swap from the rendered board.
 - Maze Runner now has an explicit 9×9 CSS grid with visible walls, player, key and exit. Keyboard instructions are displayed, and E2E verifies the field renders 81 cells and arrow-key movement updates the player.
 - The gameplay suite now checks keyboard movement for Breakout, Pong and Maze Runner, 100-number completion and timing UI, Mastermind palette selection, a valid Gem Match swap, and multiple generated Sokoban levels.
+
+
+## Player-feedback audit follow-up
+
+- Sokoban generation has been moved into a pure logic module. Candidate levels are now checked with a full player-and-crate breadth-first search before being shown; a separately tested fallback layout is used only when all generation attempts fail.
+- Number Hunt now has a 1–100 board and a wall-clock timer starting on the first tap. The browser test advances a controlled clock and checks the displayed/final elapsed time.
+- Breakout and Pong browser tests now drive the keyboard controls directly and also verify the on-screen buttons remain functional.
+- Gem Match browser tests exercise both a rejected swap and a valid matching swap.

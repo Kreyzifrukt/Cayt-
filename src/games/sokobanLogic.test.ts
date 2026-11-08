@@ -1,0 +1,43 @@
+import { describe, expect, it } from "vitest";
+import {
+  createSokobanLevel,
+  isSokobanLevelSolvable,
+  SOKOBAN_FALLBACK_LEVEL,
+  SOKOBAN_SIZE,
+} from "./sokobanLogic";
+
+function seededRandom(seed: number): () => number {
+  let value = seed >>> 0;
+  return () => {
+    value = (value * 1_664_525 + 1_013_904_223) >>> 0;
+    return value / 0x1_0000_0000;
+  };
+}
+
+describe("Sokoban level generation", () => {
+  it("keeps the fallback level solvable", () => {
+    expect(isSokobanLevelSolvable(SOKOBAN_FALLBACK_LEVEL)).toBe(true);
+  });
+
+  it("rejects a player trapped between two boxes and the boundary", () => {
+    expect(isSokobanLevelSolvable({
+      player: SOKOBAN_SIZE + 1,
+      boxes: [SOKOBAN_SIZE + 2, 2 * SOKOBAN_SIZE + 1, 28],
+      goals: [SOKOBAN_SIZE + 3, 25, 36],
+    })).toBe(false);
+  });
+
+  it("generates distinct, reachable three-crate levels across deterministic seeds", () => {
+    for (let seed = 1; seed <= 100; seed += 1) {
+      const level = createSokobanLevel(seededRandom(seed));
+      expect(level.boxes).toHaveLength(3);
+      expect(level.goals).toHaveLength(3);
+      expect(new Set(level.boxes).size).toBe(3);
+      expect(new Set(level.goals).size).toBe(3);
+      expect(level.boxes.some((box) => level.goals.includes(box))).toBe(false);
+      expect(level.boxes).not.toContain(level.player);
+      expect(level.goals).not.toContain(level.player);
+      expect(isSokobanLevelSolvable(level)).toBe(true);
+    }
+  });
+});

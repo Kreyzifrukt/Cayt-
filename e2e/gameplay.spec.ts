@@ -114,21 +114,27 @@ test.describe("gameplay input checks", () => {
     expectNoRuntimeErrors(runtimeErrors);
   });
 
-  test("11 · Breakout paddle responds to directional controls", async ({ page }) => {
+  test("11 · Breakout paddle responds to keyboard and on-screen controls", async ({ page }) => {
     const { root, runtimeErrors } = await openGame(page, 10);
     const paddle = root.locator(".breakout-paddle");
     const before = await paddle.getAttribute("style");
-    await root.getByRole("button", { name: "RIGHT" }).click();
+    await page.keyboard.press("ArrowRight");
     await expect(paddle).not.toHaveAttribute("style", before ?? "");
+    const afterKeyboard = await paddle.getAttribute("style");
+    await root.getByRole("button", { name: "RIGHT" }).click();
+    await expect(paddle).not.toHaveAttribute("style", afterKeyboard ?? "");
     expectNoRuntimeErrors(runtimeErrors);
   });
 
-  test("12 · Pong paddle responds to directional controls", async ({ page }) => {
+  test("12 · Pong paddle responds to keyboard and on-screen controls", async ({ page }) => {
     const { root, runtimeErrors } = await openGame(page, 11);
     const paddle = root.locator(".pong-you");
     const before = await paddle.getAttribute("style");
-    await root.getByRole("button", { name: "MOVE UP" }).click();
+    await page.keyboard.press("ArrowUp");
     await expect(paddle).not.toHaveAttribute("style", before ?? "");
+    const afterKeyboard = await paddle.getAttribute("style");
+    await root.getByRole("button", { name: "MOVE DOWN" }).click();
+    await expect(paddle).not.toHaveAttribute("style", afterKeyboard ?? "");
     expectNoRuntimeErrors(runtimeErrors);
   });
 
@@ -242,11 +248,15 @@ test.describe("gameplay input checks", () => {
     expectNoRuntimeErrors(runtimeErrors);
   });
 
-  test("22 · Number Hunt completes all 25 ordered targets and records rewards once", async ({ page }) => {
+  test("22 · Number Hunt times and completes all 100 ordered targets", async ({ page }) => {
+    await page.clock.install({ time: new Date("2026-11-08T12:00:00.000Z") });
     const { root, runtimeErrors } = await openGame(page, 21);
     await expect(root.locator(".number-grid button")).toHaveCount(100);
     await expect(root.locator(".number-hunt-meta")).toContainText("TIME");
-    for (let number = 1; number <= 100; number += 1) {
+    await root.getByRole("button", { name: "Number 1", exact: true }).click();
+    await page.clock.runFor(2_100);
+    await expect(root.locator(".number-hunt-meta")).toContainText("00:02");
+    for (let number = 2; number <= 100; number += 1) {
       await root.getByRole("button", { name: `Number ${number}`, exact: true }).click();
     }
     await expect(root.locator(".result")).toContainText("ALL 100 FOUND");
@@ -344,9 +354,9 @@ test.describe("gameplay input checks", () => {
     expectNoRuntimeErrors(runtimeErrors);
   });
 
-  test("30 · Gem Match accepts a legal adjacent swap and explains rejected moves", async ({ page }) => {
+  test("30 · Gem Match explains invalid swaps and accepts a legal adjacent swap", async ({ page }) => {
     const { root, runtimeErrors } = await openGame(page, 29);
-    const move = await root.locator(".match-board").evaluate((board) => {
+    const moves = await root.locator(".match-board").evaluate((board) => {
       const cells = Array.from(board.querySelectorAll("button")) as HTMLButtonElement[];
       const values = cells.map((cell) => {
         const name = Array.from(cell.classList).find((value) => value.startsWith("gem-") && value !== "gem-selected");
@@ -362,20 +372,26 @@ test.describe("gameplay input checks", () => {
         }
         return false;
       };
+      let valid: number[] | null = null;
+      let invalid: number[] | null = null;
       for (let index = 0; index < values.length; index += 1) {
         for (const neighbor of [index + 1, index + 7]) {
           if (neighbor >= values.length || (neighbor === index + 1 && index % 7 === 6)) continue;
           const swapped = [...values];
           [swapped[index], swapped[neighbor]] = [swapped[neighbor], swapped[index]];
-          if (makesMatch(swapped)) return [index, neighbor];
+          if (makesMatch(swapped)) valid = [index, neighbor]; else if (!invalid) invalid = [index, neighbor];
         }
       }
-      return null;
+      return { valid, invalid };
     });
-    expect(move).not.toBeNull();
-    await root.locator(".match-board .gem").nth(move![0]).click();
+    expect(moves.invalid).not.toBeNull();
+    await root.locator(".match-board .gem").nth(moves.invalid![0]).click();
+    await root.locator(".match-board .gem").nth(moves.invalid![1]).click();
+    await expect(root.locator(".retro-status")).toContainText("NO MATCH");
+    expect(moves.valid).not.toBeNull();
+    await root.locator(".match-board .gem").nth(moves.valid![0]).click();
     await expect(root.locator(".match-board .gem.selected")).toHaveCount(1);
-    await root.locator(".match-board .gem").nth(move![1]).click();
+    await root.locator(".match-board .gem").nth(moves.valid![1]).click();
     await expect(root.locator(".retro-status")).toContainText("MATCH!");
     await expect(root.locator(".game-score b")).not.toHaveText("0");
     expectNoRuntimeErrors(runtimeErrors);

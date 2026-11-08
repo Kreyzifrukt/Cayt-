@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { RotateCcw } from "lucide-react";
 import type { GameId } from "../types/game";
 import { createGemBoard, ensurePlayableGemBoard, findGemMatches, resolveGemCascades } from "./matchThreeLogic";
+import { createSokobanLevel, SOKOBAN_SIZE } from "./sokobanLogic";
 import { createShuffledDeck, handValue, type Card } from "./blackjackLogic";
 
 type Done = (score: number, won: boolean, draw?: boolean) => void;
@@ -44,58 +45,7 @@ function Fifteen({ done }: { done: Done }) {
   </Panel>;
 }
 
-type SokobanLevel = { player: number; boxes: number[]; goals: number[] };
-const SOKOBAN_SIZE = 8;
-const SOKOBAN_DIRECTIONS = [-SOKOBAN_SIZE, SOKOBAN_SIZE, -1, 1];
-function shufflePositions(values: number[]) {
-  const result = [...values];
-  for (let index = result.length - 1; index > 0; index -= 1) {
-    const target = Math.floor(Math.random() * (index + 1));
-    [result[index], result[target]] = [result[target], result[index]];
-  }
-  return result;
-}
-function createSokobanLevel(): SokobanLevel {
-  const interior = Array.from({ length: 36 }, (_, index) => {
-    const row = Math.floor(index / 6) + 1;
-    const column = index % 6 + 1;
-    return row * SOKOBAN_SIZE + column;
-  });
-  const isInterior = (cell: number) => {
-    const row = Math.floor(cell / SOKOBAN_SIZE);
-    const column = cell % SOKOBAN_SIZE;
-    return row >= 1 && row <= 6 && column >= 1 && column <= 6;
-  };
-  for (let attempt = 0; attempt < 120; attempt += 1) {
-    const goals = shufflePositions(interior).slice(0, 3);
-    const reserved = new Set(goals);
-    const boxes: number[] = [];
-    let valid = true;
-    for (const goal of goals) {
-      const candidates: { start: number; path: number[]; behind: number }[] = [];
-      for (const delta of SOKOBAN_DIRECTIONS) {
-        for (let distance = 1; distance <= 3; distance += 1) {
-          const start = goal - delta * distance;
-          const behind = start - delta;
-          const path = Array.from({ length: distance + 1 }, (_, step) => start + delta * step);
-          if (!isInterior(behind) || !path.every(isInterior) || reserved.has(behind)) continue;
-          if (path.some((cell) => cell !== goal && reserved.has(cell))) continue;
-          candidates.push({ start, path, behind });
-        }
-      }
-      const chosenIndex = shufflePositions(candidates.map((_, index) => index))[0];
-      const chosen = chosenIndex === undefined ? undefined : candidates[chosenIndex];
-      if (!chosen) { valid = false; break; }
-      boxes.push(chosen.start);
-      chosen.path.forEach((cell) => reserved.add(cell));
-      reserved.add(chosen.behind);
-    }
-    if (!valid || boxes.length !== 3) continue;
-    const playerOptions = shufflePositions(interior.filter((cell) => !reserved.has(cell)));
-    if (playerOptions.length) return { player: playerOptions[0], boxes, goals };
-  }
-  return { player: 51, boxes: [19, 35, 44], goals: [11, 34, 37] };
-}
+
 function Sokoban({ done }: { done: Done }) {
   const [level, setLevel] = useState(createSokobanLevel);
   const [player, setPlayer] = useState(level.player);
@@ -103,12 +53,12 @@ function Sokoban({ done }: { done: Done }) {
   const [moves, setMoves] = useState(0);
   const [levelNumber, setLevelNumber] = useState(1);
   const [won, setWon] = useState(false);
-  const walls = new Set(Array.from({ length: 64 }, (_, index) => {
+  const walls = useMemo(() => new Set(Array.from({ length: 64 }, (_, index) => {
     const row = Math.floor(index / SOKOBAN_SIZE);
     const column = index % SOKOBAN_SIZE;
     return row === 0 || row === 7 || column === 0 || column === 7 ? index : -1;
-  }).filter((index) => index >= 0));
-  const goals = new Set(level.goals);
+  }).filter((index) => index >= 0)), []);
+  const goals = useMemo(() => new Set(level.goals), [level]);
   const move = useCallback((delta: number) => {
     if (won) return;
     const next = player + delta;
@@ -129,15 +79,17 @@ function Sokoban({ done }: { done: Done }) {
       done(Math.max(100, 1000 - (moves + 1) * 12), true);
     }
   }, [boxes, done, goals, moves, player, walls, won]);
+  const moveRef = useRef(move);
+  moveRef.current = move;
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const key = event.key.toLowerCase();
       const map: Record<string, number> = { arrowup: -8, w: -8, arrowdown: 8, s: 8, arrowleft: -1, a: -1, arrowright: 1, d: 1 };
-      if (map[key] !== undefined) { event.preventDefault(); move(map[key]); }
+      if (map[key] !== undefined) { event.preventDefault(); moveRef.current(map[key]); }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [move]);
+  }, []);
   const reset = () => {
     setPlayer(level.player);
     setBoxes(level.boxes);
@@ -350,7 +302,7 @@ const MAZE = ["#########", "#   #   #", "# # # # #", "# #   # #", "# ### # #", "
 function MazeRunner({ done }: { done: Done }) {
   const [player, setPlayer] = useState(10), [keyFound, setKeyFound] = useState(false), [moves, setMoves] = useState(0), [ended, setEnded] = useState(false);
   const cells = MAZE.join("");
-  const walls = new Set(cells.split("").flatMap((value, index) => value === "#" ? [index] : []));
+  const walls = useMemo(() => new Set(cells.split("").flatMap((value, index) => value === "#" ? [index] : [])), [cells]);
   const key = cells.indexOf("K"), exit = cells.indexOf("E");
   const move = useCallback((delta: number) => {
     if (ended) return;
@@ -360,15 +312,17 @@ function MazeRunner({ done }: { done: Done }) {
     if (next === key) setKeyFound(true);
     if (next === exit && keyFound) { setEnded(true); done(Math.max(100, 800 - (moves + 1) * 8), true); }
   }, [done, ended, exit, key, keyFound, moves, player, walls]);
+  const moveRef = useRef(move);
+  moveRef.current = move;
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const map: Record<string, number> = { arrowup: -9, w: -9, arrowdown: 9, s: 9, arrowleft: -1, a: -1, arrowright: 1, d: 1 };
       const delta = map[event.key.toLowerCase()];
-      if (delta !== undefined) { event.preventDefault(); move(delta); }
+      if (delta !== undefined) { event.preventDefault(); moveRef.current(delta); }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [move]);
+  }, []);
   const reset = () => { setPlayer(10); setKeyFound(false); setMoves(0); setEnded(false); };
   return <Panel title="MAZE RUNNER · FIND THE KEY" score={moves} reset={reset}>
     <p className="retro-note">Find the key, then reach the exit. Use arrow keys or WASD. Green dot = player, diamond = key, arrow = exit.</p>
