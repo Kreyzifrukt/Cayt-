@@ -60,7 +60,7 @@ test.describe("gameplay input checks", () => {
     const { root, runtimeErrors } = await openGame(page, 3);
     await root.locator(".xo-cell").nth(4).click();
     await expect(root.locator(".xo-cell.x-mark")).toHaveCount(1);
-    await expect(root.locator(".xo-cell.o-mark")).toHaveCount(1);
+    await expect(root.locator(".xo-cell").filter({ hasText: /^O$/ })).toHaveCount(1);
     expectNoRuntimeErrors(runtimeErrors);
   });
 
@@ -134,7 +134,7 @@ test.describe("gameplay input checks", () => {
 
   test("13 · Simon Says plays a sequence and accepts the correct first input", async ({ page }) => {
     const { root, runtimeErrors } = await openGame(page, 12);
-    await root.getByRole("button", { name: "START" }).click();
+    await root.getByRole("button", { name: "START", exact: true }).click();
     const activeButton = root.locator(".simon-grid button.simon-active");
     await expect(activeButton).toBeVisible();
     const firstIndex = await activeButton.evaluate((element) =>
@@ -164,7 +164,7 @@ test.describe("gameplay input checks", () => {
 
   test("16 · Whack-a-Mole scores a hit on the spawned target", async ({ page }) => {
     const { root, runtimeErrors } = await openGame(page, 15);
-    await root.getByRole("button", { name: "START" }).click();
+    await root.getByRole("button", { name: "START", exact: true }).click();
     await root.locator(".tap-cell.is-target").click();
     await expect(root.locator(".game-score b")).toHaveText("1");
     expectNoRuntimeErrors(runtimeErrors);
@@ -172,7 +172,7 @@ test.describe("gameplay input checks", () => {
 
   test("17 · Math Sprint accepts a correct answer", async ({ page }) => {
     const { root, runtimeErrors } = await openGame(page, 16);
-    await root.getByRole("button", { name: "START" }).click();
+    await root.getByRole("button", { name: "START", exact: true }).click();
     const question = await root.locator(".math-question").innerText();
     const values = question.match(/(\d+)\s*\+\s*(\d+)/);
     expect(values).not.toBeNull();
@@ -236,7 +236,7 @@ test.describe("gameplay input checks", () => {
   test("21 · Typing Rush accepts the exact prompt and finishes the run", async ({ page }) => {
     const { root, runtimeErrors } = await openGame(page, 20);
     const prompt = await root.locator(".typing-prompt").innerText();
-    await root.getByRole("button", { name: "START" }).click();
+    await root.getByRole("button", { name: "START", exact: true }).click();
     await root.locator("textarea.collection-input").fill(prompt);
     await expect(root.locator(".game-score b")).toHaveText(String(prompt.length));
     expectNoRuntimeErrors(runtimeErrors);

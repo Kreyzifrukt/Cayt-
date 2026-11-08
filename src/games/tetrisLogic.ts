@@ -36,6 +36,6 @@ export function canPlaceTetromino(
 ): boolean {
   return getTetrominoBlocks(shape, x, y).every(
     ([column, row]) =>
-      column >= 0 && column < 10 && row >= 0 && row < 16 && !board[row][column],
+      column >= 0 && column < 10 && row >= 0 && row < 20 && !board[row][column],
   );
 }

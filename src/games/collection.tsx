@@ -21,7 +21,7 @@ function Minesweeper({ done }: { done: (s:number,w:boolean)=>void }) {
   return <Frame title={lost?"MINE DETONATED":"MINESWEEPER · 10 MINES"} score={open.length} reset={reset}><div className="game-action-row"><button className="secondary" onClick={()=>setFlagMode(v=>!v)}>{flagMode?"FLAG MODE ON":"FLAG MODE OFF"}</button><span>10 MINES · 8×8</span></div><div className="mine-grid">{Array.from({length:64},(_,i)=><button key={i} className={open.includes(i)?"mine-cell revealed": "mine-cell"} onClick={()=>{if(lost||complete)return;if(flagMode){if(open.includes(i))return;setFlags(v=>v.includes(i)?v.filter(x=>x!==i):v.length<10?[...v,i]:v);}else reveal(i);}} onContextMenu={e=>{e.preventDefault();if(lost||complete||open.includes(i))return;setFlags(v=>v.includes(i)?v.filter(x=>x!==i):v.length<10?[...v,i]:v);}}>{open.includes(i)?(mines.has(i)?"✹":count(i)||""):flags.includes(i)?"⚑":""}</button>)}</div><p className="collection-note">Откройте все безопасные клетки. Правый клик или режим флага ставит отметку.</p>{lost&&<div className="result"><b>МИНА! Попробуйте ещё раз.</b></div>}{complete&&<div className="result"><b>FIELD CLEARED. NICE WORK.</b></div>}</Frame>;
 }
 function Tetris({ done }: { done:(s:number,w:boolean,draw?:boolean)=>void }) {
-  const createBoard=()=>Array.from({length:16},()=>Array(10).fill(0));
+  const createBoard=()=>Array.from({length:20},()=>Array(10).fill(0));
   const createPiece=()=>({x:3,y:0,shape:TETROMINOES[0]});
   const [board,setBoard]=useState<number[][]>(createBoard);
   const [piece,setPiece]=useState(createPiece);
@@ -66,11 +66,11 @@ function Tetris({ done }: { done:(s:number,w:boolean,draw?:boolean)=>void }) {
 
     const locked=boardRef.current.map(row=>[...row]);
     getTetrominoBlocks(current.shape,current.x,current.y).forEach(([x,y])=>{
-      if(y>=0&&y<16&&x>=0&&x<10)locked[y][x]=1;
+      if(y>=0&&y<20&&x>=0&&x<10)locked[y][x]=1;
     });
     const kept=locked.filter(row=>row.some(value=>!value));
-    const cleared=16-kept.length;
-    while(kept.length<16)kept.unshift(Array(10).fill(0));
+    const cleared=20-kept.length;
+    while(kept.length<20)kept.unshift(Array(10).fill(0));
     const total=scoreRef.current+cleared*100;
     boardRef.current=kept;
     scoreRef.current=total;

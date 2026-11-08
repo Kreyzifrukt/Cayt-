@@ -23,10 +23,11 @@ describe("Tetris rules", () => {
   });
 
   it("rejects placements outside the board and on occupied cells", () => {
-    const board = Array.from({ length: 16 }, () => Array(10).fill(0));
+    const board = Array.from({ length: 20 }, () => Array(10).fill(0));
     expect(canPlaceTetromino(board, TETROMINOES[0], 3, 0)).toBe(true);
     expect(canPlaceTetromino(board, TETROMINOES[0], -1, 0)).toBe(false);
-    expect(canPlaceTetromino(board, TETROMINOES[0], 3, 15)).toBe(false);
+    expect(canPlaceTetromino(board, TETROMINOES[0], 3, 18)).toBe(true);
+    expect(canPlaceTetromino(board, TETROMINOES[0], 3, 19)).toBe(false);
     board[1][4] = 1;
     expect(canPlaceTetromino(board, TETROMINOES[0], 3, 0)).toBe(false);
   });

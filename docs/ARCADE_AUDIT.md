@@ -19,7 +19,7 @@ A source review is not a substitute for exercising the games in a browser. CI no
 | Tap Blitz | Timer, keyboard and target changes reviewed | Covered by mount and gameplay interaction tests in Playwright CI |
 | Word Scramble | Selection, attempt reset and scoring reviewed | Covered by mount and gameplay interaction tests in Playwright CI |
 | Minesweeper | Safe first click, flood reveal, flags and terminal input reviewed; flag limit and post-game input fixed | Covered by mount and gameplay interaction tests in Playwright CI |
-| Tetris | Seven standard tetrominoes, rotation, wall kicks, collision and row clearing reviewed | Covered by mount and gameplay interaction tests in Playwright CI |
+| Tetris | Standard 10×20 field, seven tetrominoes, rotation, wall kicks, collision and row clearing reviewed | Covered by mount and gameplay interaction tests in Playwright CI |
 | Breakout | Paddle/ball bounds and brick coordinates reviewed; boundary reflection clamped and paddle reach corrected | Covered by mount and gameplay interaction tests in Playwright CI |
 | Neon Pong | Ball collision, score and CPU movement reviewed | Covered by mount and gameplay interaction tests in Playwright CI |
 | Simon Says | Sequence playback and input timing reviewed; flash spacing and timer cleanup fixed | Covered by mount and gameplay interaction tests in Playwright CI |
@@ -62,7 +62,7 @@ A source review is not a substitute for exercising the games in a browser. CI no
 - Reversi no longer gets stuck when the player must pass; the CPU continues until the player can move or the game ends.
 - Frogger now detects cars moving into a stationary frog.
 - Blackjack natural 21 checks the dealer's natural 21 before awarding a win, and the dealer's second card stays hidden until the hand ends.
-- Tetris now has all seven standard tetrominoes, clockwise rotation, basic wall kicks, and keyboard/touch rotation controls.
+- Tetris now uses a standard 10×20 playfield with all seven tetrominoes, clockwise rotation, basic wall kicks, and keyboard/touch rotation controls.
 - Typing Rush rejects pasted text so the timed typing challenge cannot be completed by pasting the prompt.
 - Breakout's ball can reach every brick column; horizontal and ceiling bounces clamp to the board edge instead of skipping cells or moving outside the playfield.
 - Simon Says uses separated flashes and clears pending timers on reset/unmount.
