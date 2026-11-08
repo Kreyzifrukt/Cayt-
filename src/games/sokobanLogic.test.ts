@@ -22,8 +22,8 @@ describe("Sokoban level generation", () => {
   it("rejects a player trapped between two boxes and the boundary", () => {
     expect(isSokobanLevelSolvable({
       player: SOKOBAN_SIZE + 1,
-      boxes: [SOKOBAN_SIZE + 2, 2 * SOKOBAN_SIZE + 1, 28],
-      goals: [SOKOBAN_SIZE + 3, 25, 36],
+      boxes: [SOKOBAN_SIZE + 2, SOKOBAN_SIZE + 3, 2 * SOKOBAN_SIZE + 1, 3 * SOKOBAN_SIZE + 1],
+      goals: [SOKOBAN_SIZE + 4, 2 * SOKOBAN_SIZE + 3, 3 * SOKOBAN_SIZE + 2, 4 * SOKOBAN_SIZE + 3],
     })).toBe(false);
   });
 
