@@ -95,6 +95,7 @@ A source review is not a substitute for playing the games in a browser. The curr
 - Save import normalizes counters to non-negative integers, limits daily progress to three runs, rejects invalid calendar dates, and restores a default profile name when the imported name is blank.
 - The shared completion handler normalizes scores and prevents a draw from also being counted as a win. Backup object URLs are revoked after the browser has had time to begin the download.
 - Audio setup now catches synchronous browser failures as well as rejected playback promises.
+- Tap Blitz rejects input at or after its wall-clock deadline, even before the display timer catches up; Reflex uses the same strict 300 ms target shown in its instructions.
 
 ## Dependency security and maintenance
 

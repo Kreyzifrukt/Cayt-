@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { RotateCcw } from "lucide-react";
+import { isBeforeDeadline } from "./gameUtils";
 import type { GameId } from "../types/game";
 
 type Props = {
@@ -141,7 +142,7 @@ function TapBlitz({ onFinish }: Pick<Props, "onFinish">) {
   };
 
   const hit = (index: number) => {
-    if (phase !== "playing" || index !== target) return;
+    if (phase !== "playing" || index !== target || !isBeforeDeadline(Date.now(), startAt.current + 20_000)) return;
     const next = scoreRef.current + 1;
     scoreRef.current = next;
     setScore(next);
