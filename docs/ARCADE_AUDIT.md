@@ -84,6 +84,18 @@ A source review is not a substitute for playing the games in a browser. The curr
 - Shared click and result sounds use browser audio playback with a persistent effects-volume preference.
 - XP changes receive a small, restrained animation.
 
+## Follow-up fixes from the second source review
+
+- Simon Says locks player input during the inter-round pause and ignores input after the expected sequence is complete.
+- 2048 keeps the session active after the 2048 milestone and records the result only when the board reaches a terminal no-moves state; the player can explicitly continue.
+- Snake, Tetris, Breakout and Pong keep simulation state in refs and perform completion/reward side effects outside React state updater callbacks. This avoids duplicate scoring when React replays updater functions and prevents overlapping timer and keyboard ticks from processing the same state.
+- Pong stops its interval after a match ends. Breakout and Pong clamp the ball to their board boundaries.
+- The 15-Puzzle shuffle guarantees the initial board is not already solved.
+- Mini Sudoku locks its inputs after checking the solution.
+- Save import normalizes counters to non-negative integers, limits daily progress to three runs, rejects invalid calendar dates, and restores a default profile name when the imported name is blank.
+- The shared completion handler normalizes scores and prevents a draw from also being counted as a win. Backup object URLs are revoked after the browser has had time to begin the download.
+- Audio setup now catches synchronous browser failures as well as rejected playback promises.
+
 ## Dependency security and maintenance
 
 - Updated Vite to 6.4.5, including the patched v6 release for GHSA-8g5g-mxqh-grgj.

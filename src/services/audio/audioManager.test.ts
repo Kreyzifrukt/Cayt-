@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 class FakeAudio {
   static instances: FakeAudio[] = [];
   static failuresRemaining = 0;
+  static constructionFails = false;
 
   src: string;
   volume = 1;
@@ -28,6 +29,7 @@ class FakeAudio {
   });
 
   constructor(src: string) {
+    if (FakeAudio.constructionFails) throw new Error("Audio unavailable");
     this.src = src;
     FakeAudio.instances.push(this);
   }
@@ -40,6 +42,7 @@ describe("arcade audio manager", () => {
     vi.resetModules();
     FakeAudio.instances = [];
     FakeAudio.failuresRemaining = 0;
+    FakeAudio.constructionFails = false;
     vi.stubGlobal("window", {});
     vi.stubGlobal("Audio", FakeAudio);
     audio = await import("./audioManager");
@@ -47,6 +50,13 @@ describe("arcade audio manager", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+  });
+
+  it("does not crash when the browser cannot construct an audio element", async () => {
+    FakeAudio.constructionFails = true;
+
+    expect(() => audio.playArcadeSound("click", 0.5)).not.toThrow();
+    await expect(audio.startArcadeMusic()).resolves.toBe(false);
   });
 
   it("allows rapid instances of the same effect to overlap", () => {

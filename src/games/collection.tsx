@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { RotateCcw } from "lucide-react";
 import type { GameId } from "../types/game";
 import { randomDifferentIndex } from "./gameUtils";
+import { appendSimonInput } from "./simonLogic";
 import { revealSafeCells } from "./minesweeperLogic";
 import { canPlaceTetromino, getTetrominoBlocks, rotateTetromino, TETROMINOES } from "./tetrisLogic";
 
@@ -20,70 +21,275 @@ function Minesweeper({ done }: { done: (s:number,w:boolean)=>void }) {
   return <Frame title={lost?"MINE DETONATED":"MINESWEEPER · 10 MINES"} score={open.length} reset={reset}><div className="game-action-row"><button className="secondary" onClick={()=>setFlagMode(v=>!v)}>{flagMode?"FLAG MODE ON":"FLAG MODE OFF"}</button><span>10 MINES · 8×8</span></div><div className="mine-grid">{Array.from({length:64},(_,i)=><button key={i} className={open.includes(i)?"mine-cell revealed": "mine-cell"} onClick={()=>{if(lost||complete)return;if(flagMode){if(open.includes(i))return;setFlags(v=>v.includes(i)?v.filter(x=>x!==i):v.length<10?[...v,i]:v);}else reveal(i);}} onContextMenu={e=>{e.preventDefault();if(lost||complete||open.includes(i))return;setFlags(v=>v.includes(i)?v.filter(x=>x!==i):v.length<10?[...v,i]:v);}}>{open.includes(i)?(mines.has(i)?"✹":count(i)||""):flags.includes(i)?"⚑":""}</button>)}</div><p className="collection-note">Откройте все безопасные клетки. Правый клик или режим флага ставит отметку.</p>{lost&&<div className="result"><b>МИНА! Попробуйте ещё раз.</b></div>}{complete&&<div className="result"><b>FIELD CLEARED. NICE WORK.</b></div>}</Frame>;
 }
 function Tetris({ done }: { done:(s:number,w:boolean,draw?:boolean)=>void }) {
-  const [board,setBoard]=useState<number[][]>(()=>Array.from({length:16},()=>Array(10).fill(0)));
-  const [piece,setPiece]=useState({x:3,y:0,shape:TETROMINOES[0]});
+  const createBoard=()=>Array.from({length:16},()=>Array(10).fill(0));
+  const createPiece=()=>({x:3,y:0,shape:TETROMINOES[0]});
+  const [board,setBoard]=useState<number[][]>(createBoard);
+  const [piece,setPiece]=useState(createPiece);
   const [score,setScore]=useState(0);
   const [over,setOver]=useState(false);
-  const blocks=(x=piece.x,y=piece.y,shape=piece.shape)=>getTetrominoBlocks(shape,x,y);
-  const canPlace=(x:number,y:number,shape=piece.shape)=>canPlaceTetromino(board,shape,x,y);
-  const shift=(dx:number)=>{if(over)return;setPiece(p=>{const x=p.x+dx;return canPlace(x,p.y,p.shape)?{...p,x}:p;});};
-  const rotate=()=>{if(over)return;const shape=rotateTetromino(piece.shape);const offset=[0,-1,1,-2,2].find(dx=>canPlace(piece.x+dx,piece.y,shape));if(offset!==undefined)setPiece(p=>({...p,x:p.x+offset,shape}));};
+  const boardRef=useRef(board);
+  const pieceRef=useRef(piece);
+  const scoreRef=useRef(0);
+  const overRef=useRef(false);
+  const doneRef=useRef(done);
+  doneRef.current=done;
+
+  const moveHorizontal=(delta:number)=>{
+    if(overRef.current)return;
+    const current=pieceRef.current;
+    const nextX=current.x+delta;
+    if(!canPlaceTetromino(boardRef.current,current.shape,nextX,current.y))return;
+    const next={...current,x:nextX};
+    pieceRef.current=next;
+    setPiece(next);
+  };
+  const rotate=()=>{
+    if(overRef.current)return;
+    const current=pieceRef.current;
+    const rotated=rotateTetromino(current.shape);
+    const offset=[0,-1,1,-2,2].find(dx=>canPlaceTetromino(boardRef.current,rotated,current.x+dx,current.y));
+    if(offset===undefined)return;
+    const next={...current,x:current.x+offset,shape:rotated};
+    pieceRef.current=next;
+    setPiece(next);
+  };
   const tick=()=>{
-    if(over)return;
-    const nextY=piece.y+1;
-    if(canPlace(piece.x,nextY)){setPiece(p=>({...p,y:p.y+1}));return;}
-    const locked=board.map(row=>[...row]);
-    blocks().forEach(([x,y])=>{if(y>=0&&y<16&&x>=0&&x<10)locked[y][x]=1;});
+    if(overRef.current)return;
+    const current=pieceRef.current;
+    const nextY=current.y+1;
+    if(canPlaceTetromino(boardRef.current,current.shape,current.x,nextY)){
+      const next={...current,y:nextY};
+      pieceRef.current=next;
+      setPiece(next);
+      return;
+    }
+
+    const locked=boardRef.current.map(row=>[...row]);
+    getTetrominoBlocks(current.shape,current.x,current.y).forEach(([x,y])=>{
+      if(y>=0&&y<16&&x>=0&&x<10)locked[y][x]=1;
+    });
     const kept=locked.filter(row=>row.some(value=>!value));
     const cleared=16-kept.length;
     while(kept.length<16)kept.unshift(Array(10).fill(0));
-    const total=score+cleared*100;
-    setBoard(kept);setScore(total);
+    const total=scoreRef.current+cleared*100;
+    boardRef.current=kept;
+    scoreRef.current=total;
+    setBoard(kept);
+    setScore(total);
+
     const nextPiece={x:3,y:0,shape:TETROMINOES[Math.floor(Math.random()*TETROMINOES.length)]};
-    if(getTetrominoBlocks(nextPiece.shape,nextPiece.x,nextPiece.y).some(([x,y])=>kept[y]?.[x])){setOver(true);done(total,false);}
-    else setPiece(nextPiece);
+    if(!canPlaceTetromino(kept,nextPiece.shape,nextPiece.x,nextPiece.y)){
+      overRef.current=true;
+      setOver(true);
+      doneRef.current(total,false);
+      return;
+    }
+    pieceRef.current=nextPiece;
+    setPiece(nextPiece);
   };
-  useEffect(()=>{if(over)return;const timer=window.setInterval(tick,650);return()=>window.clearInterval(timer);});
-  useEffect(()=>{const key=(event:KeyboardEvent)=>{if(event.key==="ArrowLeft"||event.key==="a"){event.preventDefault();shift(-1);}else if(event.key==="ArrowRight"||event.key==="d"){event.preventDefault();shift(1);}else if(event.key==="ArrowDown"||event.key==="s"){event.preventDefault();tick();}else if(event.key==="ArrowUp"||event.key==="w"){event.preventDefault();rotate();}};window.addEventListener("keydown",key);return()=>window.removeEventListener("keydown",key);});
-  const reset=()=>{setBoard(Array.from({length:16},()=>Array(10).fill(0)));setPiece({x:3,y:0,shape:TETROMINOES[0]});setScore(0);setOver(false);};
+
+  useEffect(()=>{
+    if(over)return;
+    const timer=window.setInterval(tick,650);
+    return()=>window.clearInterval(timer);
+  },[over]);
+
+  useEffect(()=>{
+    const key=(event:KeyboardEvent)=>{
+      if(event.key==="ArrowLeft"||event.key==="a"){event.preventDefault();moveHorizontal(-1);}
+      else if(event.key==="ArrowRight"||event.key==="d"){event.preventDefault();moveHorizontal(1);}
+      else if(event.key==="ArrowDown"||event.key==="s"){event.preventDefault();tick();}
+      else if(event.key==="ArrowUp"||event.key==="w"){event.preventDefault();rotate();}
+    };
+    window.addEventListener("keydown",key);
+    return()=>window.removeEventListener("keydown",key);
+  },[]);
+
+  const reset=()=>{
+    const nextBoard=createBoard();
+    const nextPiece=createPiece();
+    boardRef.current=nextBoard;
+    pieceRef.current=nextPiece;
+    scoreRef.current=0;
+    overRef.current=false;
+    setBoard(nextBoard);
+    setPiece(nextPiece);
+    setScore(0);
+    setOver(false);
+  };
+  const visibleBlocks=getTetrominoBlocks(piece.shape,piece.x,piece.y);
   return <Frame title={over?"STACK OVER":"TETRIS · ARROW KEYS"} score={score} reset={reset}>
-    <div className="tetris-board" aria-label="Tetris playfield">{board.flatMap((row,y)=>row.map((value,x)=><span key={y*10+x} className={value||blocks().some(([bx,by])=>bx===x&&by===y)?"tetris-block":""}/>))}</div>
-    <div className="game-action-row"><button className="secondary" onClick={()=>shift(-1)} disabled={over}>LEFT</button><button className="secondary" onClick={rotate} disabled={over}>ROTATE</button><button className="secondary" onClick={()=>shift(1)} disabled={over}>RIGHT</button><button className="secondary" onClick={tick} disabled={over}>DOWN</button></div>
+    <div className="tetris-board" aria-label="Tetris playfield">{board.flatMap((row,y)=>row.map((value,x)=><span key={y*10+x} className={value||visibleBlocks.some(([bx,by])=>bx===x&&by===y)?"tetris-block":""}/>) )}</div>
+    <div className="game-action-row"><button className="secondary" onClick={()=>moveHorizontal(-1)} disabled={over}>LEFT</button><button className="secondary" onClick={rotate} disabled={over}>ROTATE</button><button className="secondary" onClick={()=>moveHorizontal(1)} disabled={over}>RIGHT</button><button className="secondary" onClick={tick} disabled={over}>DOWN</button></div>
     {over&&<div className="result"><b>GAME OVER · {score} POINTS</b><button onClick={reset}>PLAY AGAIN</button></div>}
   </Frame>;
 }
+
 function Breakout({done}:{done:(s:number,w:boolean)=>void}) {
- const [paddle,setPaddle]=useState(4);const [ball,setBall]=useState({x:4,y:8,dx:1,dy:-1});const [bricks,setBricks]=useState(()=>Array.from({length:30},(_,i)=>i));const [lost,setLost]=useState(false);const [won,setWon]=useState(false);
- useEffect(()=>{if(lost||won)return;const t=window.setInterval(()=>setBall(b=>{let x=b.x+b.dx,y=b.y+b.dy,dx=b.dx,dy=b.dy;if(x<0||x>9)dx=-dx;if(y<0)dy=-dy;if(y>=11){if(Math.abs(x-paddle)<=1){dy=-1;}else{setLost(true);done(bricks.length===0?500:30,false);return b;}}const hit=bricks.find(i=>Math.floor(i/10)===Math.floor(y/2)&&i%10===Math.round(x));if(hit!==undefined){setBricks(v=>v.filter(n=>n!==hit));dy=-dy;}return{x:x<0||x>9?x+dx*2:x,y:y>=11?10:y,dx,dy};}),180);return()=>window.clearInterval(t);},[paddle,lost,won,bricks,done]);
- useEffect(()=>{if(!bricks.length&&!won){setWon(true);done(500,true);}},[bricks,won,done]);
- const reset=()=>{setPaddle(4);setBall({x:4,y:8,dx:1,dy:-1});setBricks(Array.from({length:30},(_,i)=>i));setLost(false);setWon(false);};
- return <Frame title="BREAKOUT · MOVE THE PADDLE" score={30-bricks.length} reset={reset}><div className="breakout-board">{Array.from({length:30},(_,i)=><i key={i} className={bricks.includes(i)?"brick":""}/>)}<span className="breakout-ball" style={{left:`${ball.x*10+5}%`,top:`${ball.y*8+4}%`}}/><span className="breakout-paddle" style={{left:`${paddle*10+5}%`}}/></div><div className="game-action-row"><button className="secondary" onClick={()=>setPaddle(p=>Math.max(0,p-1))}>LEFT</button><button className="secondary" onClick={()=>setPaddle(p=>Math.min(9,p+1))}>RIGHT</button></div>{lost&&<div className="result"><b>THE BALL GOT AWAY.</b></div>}</Frame>;
+ const initialBall={x:4,y:8,dx:1,dy:-1};
+ const initialBricks=Array.from({length:30},(_,i)=>i);
+ const [paddle,setPaddle]=useState(4);
+ const [ball,setBall]=useState(initialBall);
+ const [bricks,setBricks]=useState(initialBricks);
+ const [lost,setLost]=useState(false);
+ const [won,setWon]=useState(false);
+ const paddleRef=useRef(4);
+ const ballRef=useRef(initialBall);
+ const bricksRef=useRef(initialBricks);
+ const lostRef=useRef(false);
+ const wonRef=useRef(false);
+ const doneRef=useRef(done);
+ doneRef.current=done;
+
+ useEffect(()=>{
+  if(lost||won)return;
+  const timer=window.setInterval(()=>{
+   if(lostRef.current||wonRef.current)return;
+   const current=ballRef.current;
+   let x=current.x+current.dx;
+   let y=current.y+current.dy;
+   let dx=current.dx;
+   let dy=current.dy;
+   if(x<0){x=0;dx=1;}else if(x>9){x=9;dx=-1;}
+   if(y<0){y=0;dy=1;}
+   if(y>=11){
+    if(Math.abs(x-paddleRef.current)<=1){y=10;dy=-1;}
+    else{
+     lostRef.current=true;
+     setLost(true);
+     doneRef.current(30,false);
+     return;
+    }
+   }
+   const hit=bricksRef.current.find(index=>Math.floor(index/10)===Math.floor(y/2)&&index%10===Math.round(x));
+   if(hit!==undefined){
+    const remaining=bricksRef.current.filter(index=>index!==hit);
+    bricksRef.current=remaining;
+    setBricks(remaining);
+    dy=-dy;
+    if(remaining.length===0){
+     wonRef.current=true;
+     setWon(true);
+     const nextBall={x,y,dx,dy};
+     ballRef.current=nextBall;
+     setBall(nextBall);
+     doneRef.current(500,true);
+     return;
+    }
+   }
+   const nextBall={x,y,dx,dy};
+   ballRef.current=nextBall;
+   setBall(nextBall);
+  },180);
+  return()=>window.clearInterval(timer);
+ },[lost,won]);
+
+ const movePaddle=(delta:number)=>{
+  const next=Math.max(0,Math.min(9,paddleRef.current+delta));
+  paddleRef.current=next;
+  setPaddle(next);
+ };
+ const reset=()=>{
+  const nextBricks=Array.from({length:30},(_,i)=>i);
+  paddleRef.current=4;
+  ballRef.current=initialBall;
+  bricksRef.current=nextBricks;
+  lostRef.current=false;
+  wonRef.current=false;
+  setPaddle(4);
+  setBall(initialBall);
+  setBricks(nextBricks);
+  setLost(false);
+  setWon(false);
+ };
+ return <Frame title={won?"WALL DESTROYED":lost?"BALL LOST":"BREAKOUT · MOVE THE PADDLE"} score={30-bricks.length} reset={reset}>
+  <div className="breakout-board">{Array.from({length:30},(_,i)=><i key={i} className={bricks.includes(i)?"brick":""}/>)}<span className="breakout-ball" style={{left:`${ball.x*10+5}%`,top:`${ball.y*8+4}%`}}/><span className="breakout-paddle" style={{left:`${paddle*10+5}%`}}/></div>
+  <div className="game-action-row"><button className="secondary" onClick={()=>movePaddle(-1)} disabled={lost||won}>LEFT</button><button className="secondary" onClick={()=>movePaddle(1)} disabled={lost||won}>RIGHT</button></div>
+  {(lost||won)&&<div className="result"><b>{won?"ALL BRICKS CLEARED.":"THE BALL GOT AWAY."}</b><button onClick={reset}>PLAY AGAIN</button></div>}
+ </Frame>;
 }
 function Pong({done}:{done:(s:number,w:boolean)=>void}) {
- const [ball,setBall]=useState({x:5,y:5,dx:1,dy:1});
- const [paddle,setPaddle]=useState(5);const [cpuPaddle,setCpuPaddle]=useState(5);
- const [player,setPlayer]=useState(0);const [cpu,setCpu]=useState(0);const [finished,setFinished]=useState(false);
+ const initialBall={x:5,y:5,dx:1,dy:1};
+ const [ball,setBall]=useState(initialBall);
+ const [paddle,setPaddle]=useState(5);
+ const [cpuPaddle,setCpuPaddle]=useState(5);
+ const [player,setPlayer]=useState(0);
+ const [cpu,setCpu]=useState(0);
+ const [finished,setFinished]=useState(false);
+ const ballRef=useRef(initialBall);
+ const paddleRef=useRef(5);
+ const cpuPaddleRef=useRef(5);
+ const playerRef=useRef(0);
+ const cpuRef=useRef(0);
+ const finishedRef=useRef(false);
+ const doneRef=useRef(done);
+ doneRef.current=done;
+
  useEffect(()=>{
   if(finished)return;
   const timer=window.setInterval(()=>{
-   setBall(current=>{
-    let x=current.x+current.dx,y=current.y+current.dy,dx=current.dx,dy=current.dy;
-    if(y<=0||y>=9){dy=-dy;y=Math.max(0,Math.min(9,y));}
-    if(x>=9){if(Math.abs(y-cpuPaddle)<=1){dx=-1;}else{setPlayer(v=>v+1);x=5;y=5;dx=-1;}}
-    if(x<=0){if(Math.abs(y-paddle)<=1){dx=1;}else{setCpu(v=>v+1);x=5;y=5;dx=1;}}
-    return{x,y,dx,dy};
-   });
-   setCpuPaddle(v=>Math.abs(v-ball.y)<=1?v:v+(ball.y>v?1:-1));
+   if(finishedRef.current)return;
+   const current=ballRef.current;
+   let x=current.x+current.dx;
+   let y=current.y+current.dy;
+   let dx=current.dx;
+   let dy=current.dy;
+   let nextPlayer=playerRef.current;
+   let nextCpu=cpuRef.current;
+   if(y<=0){y=0;dy=1;}else if(y>=9){y=9;dy=-1;}
+   if(x>=9){
+    if(Math.abs(y-cpuPaddleRef.current)<=1){x=8;dx=-1;}
+    else{nextPlayer+=1;x=5;y=5;dx=-1;}
+   }else if(x<=0){
+    if(Math.abs(y-paddleRef.current)<=1){x=1;dx=1;}
+    else{nextCpu+=1;x=5;y=5;dx=1;}
+   }
+   if(nextPlayer!==playerRef.current){playerRef.current=nextPlayer;setPlayer(nextPlayer);}
+   if(nextCpu!==cpuRef.current){cpuRef.current=nextCpu;setCpu(nextCpu);}
+   let nextCpuPaddle=cpuPaddleRef.current;
+   if(Math.abs(y-nextCpuPaddle)>1)nextCpuPaddle+=y>nextCpuPaddle?1:-1;
+   nextCpuPaddle=Math.max(1,Math.min(9,nextCpuPaddle));
+   cpuPaddleRef.current=nextCpuPaddle;
+   setCpuPaddle(nextCpuPaddle);
+   const nextBall={x,y,dx,dy};
+   ballRef.current=nextBall;
+   setBall(nextBall);
+   if(nextPlayer>=5||nextCpu>=5){
+    finishedRef.current=true;
+    setFinished(true);
+    doneRef.current(nextPlayer*100,nextPlayer>nextCpu);
+   }
   },230);
   return()=>window.clearInterval(timer);
- },[paddle,cpuPaddle,ball.y,finished]);
- useEffect(()=>{if(player>=5||cpu>=5){setFinished(true);done(player*100,player>cpu);}},[player,cpu,done]);
- const reset=()=>{setBall({x:5,y:5,dx:1,dy:1});setPaddle(5);setCpuPaddle(5);setPlayer(0);setCpu(0);setFinished(false);};
+ },[finished]);
+
+ const movePaddle=(delta:number)=>{
+  if(finishedRef.current)return;
+  const next=Math.max(1,Math.min(9,paddleRef.current+delta));
+  paddleRef.current=next;
+  setPaddle(next);
+ };
+ const reset=()=>{
+  ballRef.current=initialBall;
+  paddleRef.current=5;
+  cpuPaddleRef.current=5;
+  playerRef.current=0;
+  cpuRef.current=0;
+  finishedRef.current=false;
+  setBall(initialBall);
+  setPaddle(5);
+  setCpuPaddle(5);
+  setPlayer(0);
+  setCpu(0);
+  setFinished(false);
+ };
  return <Frame title="NEON PONG · FIRST TO 5" score={`${player} : ${cpu}`} reset={reset}>
   <div className="pong-board"><span className="pong-ball" style={{left:`${ball.x*10}%`,top:`${ball.y*10}%`}}/><i className="pong-you" style={{top:`${paddle*10}%`}}/><i className="pong-cpu" style={{top:`${cpuPaddle*10}%`}}/></div>
-  <div className="game-action-row"><button className="secondary" onClick={()=>setPaddle(v=>Math.max(1,v-1))}>MOVE UP</button><button className="secondary" onClick={()=>setPaddle(v=>Math.min(9,v+1))}>MOVE DOWN</button></div>
+  <div className="game-action-row"><button className="secondary" onClick={()=>movePaddle(-1)} disabled={finished}>MOVE UP</button><button className="secondary" onClick={()=>movePaddle(1)} disabled={finished}>MOVE DOWN</button></div>
+  {finished&&<div className="result"><b>{player>cpu?"YOU WIN":"CPU WINS"}</b><button onClick={reset}>REMATCH</button></div>}
  </Frame>;
 }
+
 function Simon({done}:{done:(s:number,w:boolean)=>void}) {
  const [sequence,setSequence]=useState<number[]>([]);const [input,setInput]=useState<number[]>([]);const [active,setActive]=useState(-1);const [started,setStarted]=useState(false);const [failed,setFailed]=useState(false);const [completed,setCompleted]=useState(false);const [playback,setPlayback]=useState(false);
  const timers=useRef<number[]>([]);
@@ -99,7 +305,7 @@ function Simon({done}:{done:(s:number,w:boolean)=>void}) {
  };
  const next=()=>{const s=[...sequence,Math.floor(Math.random()*4)];setSequence(s);setInput([]);show(s);};
  const begin=()=>{clearTimers();const first=Math.floor(Math.random()*4);setSequence([first]);setInput([]);setStarted(true);setFailed(false);setCompleted(false);show([first]);};
- const tap=(n:number)=>{if(!started||failed||playback)return;const v=[...input,n];setInput(v);if(sequence[v.length-1]!==n){setFailed(true);setStarted(false);done(sequence.length*50,false);return;}if(v.length===sequence.length){if(sequence.length>=12){done(600,true);setStarted(false);setCompleted(true);}else timers.current.push(window.setTimeout(next,500));}};
+ const tap=(n:number)=>{if(!started||failed||playback)return;const result=appendSimonInput(sequence,input,n);if(result.kind==="ignored")return;if(result.kind==="mistake"){clearTimers();setFailed(true);setStarted(false);done(sequence.length*50,false);return;}setInput(result.input);if(result.kind==="complete"){if(sequence.length>=12){done(600,true);setStarted(false);setCompleted(true);}else{setPlayback(true);timers.current.push(window.setTimeout(next,500));}}};
  const reset=()=>{clearTimers();setSequence([]);setInput([]);setStarted(false);setFailed(false);setCompleted(false);setPlayback(false);setActive(-1);};
  return <Frame title="SIMON SAYS · REPEAT THE PATTERN" score={sequence.length} reset={reset}><div className="simon-grid">{[0,1,2,3].map(n=><button key={n} className={active===n?"simon-active":""} onClick={()=>tap(n)} disabled={!started||playback}/>)}</div>{!started||failed||completed?<div className="result"><b>{completed?"12 ROUNDS CLEARED":failed?"PATTERN BROKEN": "MEMORIZE THE LIGHTS"}</b><button onClick={begin}> {failed?"TRY AGAIN":"START"}</button></div>:<p className="collection-note">{playback?"Watch the sequence, then repeat it.":"Repeat the sequence."}</p>}</Frame>;
 }
@@ -170,7 +376,7 @@ function MiniSudoku({done}:{done:(s:number,w:boolean)=>void}) {
  const puzzle=[1,0,0,4,0,4,1,0,0,1,4,0,4,0,0,1];const solution=[1,2,3,4,3,4,1,2,2,1,4,3,4,3,2,1];const [values,setValues]=useState(puzzle);const [checked,setChecked]=useState(false);
  const set=(i:number,v:number)=>setValues(a=>a.map((n,j)=>i===j?v:n));
  const verify=()=>{if(checked||values.some(value=>value===0))return;const ok=values.every((v,i)=>v===solution[i]);setChecked(true);done(ok?500:100,ok);};
- return <Frame title="MINI SUDOKU · 4×4" score={values.filter((v,i)=>v&&puzzle[i]===0).length} reset={()=>{setValues(puzzle);setChecked(false);}}><div className="sudoku-grid">{values.map((v,i)=>puzzle[i]?<b key={i}>{v}</b>:<select key={i} value={v||""} onChange={e=>set(i,Number(e.target.value))}><option value="">·</option>{[1,2,3,4].map(n=><option key={n}>{n}</option>)}</select>)}</div><div className="result"><b>{checked?"CHECK COMPLETE":"EACH ROW, COLUMN AND 2×2 BOX USES 1–4"}</b><button onClick={verify} disabled={checked||values.some(value=>value===0)}>CHECK SOLUTION</button></div></Frame>;
+ return <Frame title="MINI SUDOKU · 4×4" score={values.filter((v,i)=>v&&puzzle[i]===0).length} reset={()=>{setValues(puzzle);setChecked(false);}}><div className="sudoku-grid">{values.map((v,i)=>puzzle[i]?<b key={i}>{v}</b>:<select key={i} value={v||""} disabled={checked} onChange={e=>set(i,Number(e.target.value))}><option value="">·</option>{[1,2,3,4].map(n=><option key={n}>{n}</option>)}</select>)}</div><div className="result"><b>{checked?"CHECK COMPLETE":"EACH ROW, COLUMN AND 2×2 BOX USES 1–4"}</b><button onClick={verify} disabled={checked||values.some(value=>value===0)}>CHECK SOLUTION</button></div></Frame>;
 }
 export function CollectionGame({id,onFinish}:Props) {
  const finishRef=useRef(onFinish);finishRef.current=onFinish;

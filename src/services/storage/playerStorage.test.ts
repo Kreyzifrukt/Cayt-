@@ -114,6 +114,42 @@ describe("player save normalization", () => {
     expect(randomDifferentIndex(0, 1, () => 0.5)).toBe(0);
   });
 
+  it("normalizes counters to safe non-negative integers and caps daily progress", () => {
+    const save = normalizeSave({
+      xp: 120.8,
+      coins: 9.9,
+      played: 4.7,
+      wins: 2.8,
+      draws: 1.6,
+      dailyRuns: 200,
+      profileName: "   ",
+      gameStats: {
+        snake: { played: 2.9, wins: 1.8, draws: 0.8, totalDurationSeconds: 31.9, bestScore: 70.5 },
+      },
+    });
+
+    expect(save.xp).toBe(120);
+    expect(save.coins).toBe(9);
+    expect(save.played).toBe(4);
+    expect(save.wins).toBe(2);
+    expect(save.draws).toBe(1);
+    expect(save.dailyRuns).toBe(3);
+    expect(save.profileName).toBe("PLAYER ONE");
+    expect(save.gameStats.snake).toEqual({
+      played: 2,
+      wins: 1,
+      draws: 0,
+      totalDurationSeconds: 31,
+      bestScore: 70,
+    });
+  });
+
+  it("accepts real calendar dates and rejects malformed daily date values", () => {
+    expect(normalizeSave({ dailyDate: "2026-11-08" }).dailyDate).toBe("2026-11-08");
+    expect(normalizeSave({ dailyDate: "2026-02-30" }).dailyDate).toBe("");
+    expect(normalizeSave({ dailyDate: "not-a-date" }).dailyDate).toBe("");
+  });
+
   it("registers exactly 31 games", () => {
     expect(GAME_IDS).toHaveLength(31);
     expect(new Set(GAME_IDS).size).toBe(31);

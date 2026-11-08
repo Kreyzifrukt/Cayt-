@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { RotateCcw } from "lucide-react";
 import type { GameId } from "../types/game";
@@ -19,6 +19,11 @@ function shuffle() {
     const options = [blank - 4, blank + 4, blank % 4 ? blank - 1 : -1, blank % 4 < 3 ? blank + 1 : -1].filter((i) => i >= 0 && i < 16 && i !== previous);
     const next = options[Math.floor(Math.random() * options.length)];
     [board[blank], board[next]] = [board[next], board[blank]]; previous = blank;
+  }
+  if (board.every((value, index) => value === ORDER[index])) {
+    const blank = board.indexOf(0);
+    const neighbor = blank % 4 > 0 ? blank - 1 : blank + 1;
+    [board[blank], board[neighbor]] = [board[neighbor], board[blank]];
   }
   return board;
 }
@@ -223,7 +228,9 @@ function MazeRunner({done}:{done:Done}){
 }
 
 export function RetroGame({id,onFinish}:Props){
-  const done=useCallback((score:number,won:boolean,draw=false)=>onFinish(id,score,won,draw),[id,onFinish]);
+  const finishRef=useRef(onFinish);
+  finishRef.current=onFinish;
+  const done=useCallback((score:number,won:boolean,draw=false)=>finishRef.current(id,score,won,draw),[id]);
   switch(id){
     case "fifteen-puzzle":return <Fifteen done={done}/>;
     case "sokoban":return <Sokoban done={done}/>;

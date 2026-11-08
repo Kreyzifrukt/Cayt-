@@ -53,18 +53,21 @@ export function playArcadeSound(sound: ArcadeSound, volume = 0.65): void {
   const level = clampVolume(volume);
   if (level === 0) return;
 
-  const audio = getEffectVoice(sound);
-  audio.volume = level;
-
   try {
-    audio.currentTime = 0;
+    const audio = getEffectVoice(sound);
+    audio.volume = level;
+    try {
+      audio.currentTime = 0;
+    } catch {
+      // Some browsers reject seeking before media metadata has loaded.
+    }
+    const playback = audio.play();
+    void playback?.catch(() => {
+      // Audio can be blocked by autoplay policy or unavailable offline.
+    });
   } catch {
-    // Some browsers reject seeking before media metadata has loaded.
+    // Audio construction or playback can fail in restricted browser contexts.
   }
-
-  void audio.play().catch(() => {
-    // Audio can be blocked by autoplay policy or unavailable offline.
-  });
 }
 
 /**
@@ -75,26 +78,18 @@ export async function startArcadeMusic(volume = musicVolume): Promise<boolean> {
   if (typeof window === "undefined" || typeof Audio === "undefined") return false;
 
   musicVolume = clampVolume(volume);
-  if (!backgroundMusic) {
-    backgroundMusic = new Audio(MUSIC_URL);
-    backgroundMusic.loop = true;
-    backgroundMusic.preload = "none";
-  }
-
-  // A media element can enter an error state after playback has already started
-  // (for example, when the network drops). Reset it before the next user-gesture retry.
-  if (backgroundMusic.error) {
-    try {
-      backgroundMusic.load();
-    } catch {
-      return false;
-    }
-  }
-
-  backgroundMusic.volume = musicVolume;
-  if (!backgroundMusic.paused && !backgroundMusic.error) return true;
-
   try {
+    if (!backgroundMusic) {
+      backgroundMusic = new Audio(MUSIC_URL);
+      backgroundMusic.loop = true;
+      backgroundMusic.preload = "none";
+    }
+
+    // Reset a failed media element before retrying after a later user gesture.
+    if (backgroundMusic.error) backgroundMusic.load();
+    backgroundMusic.volume = musicVolume;
+    if (!backgroundMusic.paused && !backgroundMusic.error) return true;
+
     await backgroundMusic.play();
     return true;
   } catch {
@@ -105,15 +100,17 @@ export async function startArcadeMusic(volume = musicVolume): Promise<boolean> {
 
 export function setArcadeMusicVolume(volume: number): void {
   musicVolume = clampVolume(volume);
-  if (backgroundMusic) backgroundMusic.volume = musicVolume;
+  if (backgroundMusic) {
+    try { backgroundMusic.volume = musicVolume; } catch { /* Ignore unavailable media elements. */ }
+  }
 }
 
 export function stopArcadeMusic(): void {
   if (!backgroundMusic) return;
-  backgroundMusic.pause();
   try {
+    backgroundMusic.pause();
     backgroundMusic.currentTime = 0;
   } catch {
-    // Resetting an unloaded media element is not supported in every browser.
+    // Resetting an unloaded or failed media element is not supported everywhere.
   }
 }

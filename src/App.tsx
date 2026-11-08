@@ -50,33 +50,36 @@ export default function App() {
   },[save.musicEnabled]);
   useEffect(()=>{setArcadeMusicVolume(save.musicVolume);},[save.musicVolume]);
   const finish=(id:GameId,score:number,won:boolean,draw=false)=>{
+    const safeScore=Number.isFinite(score)?Math.max(0,Math.floor(score)):0;
+    const isDraw=draw===true;
+    const didWin=won===true&&!isDraw;
     const finishedAt=Date.now();
     const startedAt=runStartedAt.current;
     if(startedAt===null)return;
     runStartedAt.current=null;
     awaitingRestart.current=true;
-    const session={id,playedAt:new Date(finishedAt).toISOString(),durationSeconds:Math.max(0,Math.round((finishedAt-startedAt)/1000)),score:Math.max(0,score),won,draw};
+    const session={id,playedAt:new Date(finishedAt).toISOString(),durationSeconds:Math.max(0,Math.round((finishedAt-startedAt)/1000)),score:safeScore,won:didWin,draw:isDraw};
     const currentDailyDate=save.dailyDate===todayKey();
-    const nextDailyRuns=(currentDailyDate?save.dailyRuns:0)+1;
+    const nextDailyRuns=Math.min(3,(currentDailyDate?save.dailyRuns:0)+1);
     const dailyReward=nextDailyRuns===3&&!(currentDailyDate&&save.dailyClaimed);
-    const baseXp=Math.max(5,Math.round(score/5)+10);
+    const baseXp=Math.max(5,Math.round(safeScore/5)+10);
     const gainedXp=baseXp+(dailyReward?50:0);
     const levelUp=Math.floor((save.xp+gainedXp)/250)>Math.floor(save.xp/250);
-    if(save.sound)playArcadeSound(dailyReward||levelUp?"reward":draw?"click":won?"win":"lose",save.effectsVolume);
+    if(save.sound)playArcadeSound(dailyReward||levelUp?"reward":isDraw?"click":didWin?"win":"lose",save.effectsVolume);
     setSave(s=>{
       const fresh=s.dailyDate===todayKey()?s:{...s,dailyDate:todayKey(),dailyRuns:0,dailyClaimed:false};
-      const runs=fresh.dailyRuns+1;
+      const runs=Math.min(3,fresh.dailyRuns+1);
       const reward=runs===3&&!fresh.dailyClaimed;
-      return {...fresh,xp:fresh.xp+Math.max(5,Math.round(score/5)+10)+(reward?50:0),
-        coins:fresh.coins+Math.max(1,Math.floor(score/100))+(reward?25:0),
-        played:fresh.played+1,wins:fresh.wins+(won?1:0),draws:fresh.draws+(draw?1:0),dailyRuns:runs,dailyClaimed:fresh.dailyClaimed||reward,
-        best:{...fresh.best,[id]:Math.max(fresh.best[id]||0,score)},
+      return {...fresh,xp:fresh.xp+Math.max(5,Math.round(safeScore/5)+10)+(reward?50:0),
+        coins:fresh.coins+Math.max(1,Math.floor(safeScore/100))+(reward?25:0),
+        played:fresh.played+1,wins:fresh.wins+(didWin?1:0),draws:fresh.draws+(isDraw?1:0),dailyRuns:runs,dailyClaimed:fresh.dailyClaimed||reward,
+        best:{...fresh.best,[id]:Math.max(fresh.best[id]||0,safeScore)},
         gameStats:{...fresh.gameStats,[id]:{
           played:(fresh.gameStats[id]?.played||0)+1,
-          wins:(fresh.gameStats[id]?.wins||0)+(won?1:0),
-          draws:(fresh.gameStats[id]?.draws||0)+(draw?1:0),
+          wins:(fresh.gameStats[id]?.wins||0)+(didWin?1:0),
+          draws:(fresh.gameStats[id]?.draws||0)+(isDraw?1:0),
           totalDurationSeconds:(fresh.gameStats[id]?.totalDurationSeconds||0)+session.durationSeconds,
-          bestScore:Math.max(fresh.gameStats[id]?.bestScore||0,score),
+          bestScore:Math.max(fresh.gameStats[id]?.bestScore||0,safeScore),
         }},
         history:[session,...fresh.history].slice(0,500)};
     });
@@ -103,7 +106,7 @@ export default function App() {
   const exportSave=()=>{
     const blob=new Blob([JSON.stringify(save,null,2)],{type:"application/json"});
     const url=URL.createObjectURL(blob);const link=document.createElement("a");
-    link.href=url;link.download="neon-arcade-save.json";link.click();URL.revokeObjectURL(url);
+    link.href=url;link.download="neon-arcade-save.json";link.click();window.setTimeout(()=>URL.revokeObjectURL(url),1000);
   };
   const importSave=(file:File)=>{
     file.text().then(raw=>{const parsed:unknown=JSON.parse(raw);setSave(normalizeSave(parsed));})
