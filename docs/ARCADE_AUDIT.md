@@ -4,43 +4,43 @@
 
 This audit covers all 31 game modules, the shared completion/reward flow, local save normalization, audio feedback, and responsive controls.
 
-A source review is not a substitute for playing the games in a browser. The current CI workflow verifies TypeScript, Vitest, and the production build; it does not simulate pointer/touch input, keyboard focus, timing under real rendering, or a complete game session. Browser/device verification therefore remains a separate required pass before calling the audit complete.
+A source review is not a substitute for exercising the games in a browser. CI now runs both mount smoke tests and a dedicated Playwright interaction suite that sends at least one real browser input through each of the 31 games. The suite also completes a full Number Hunt run and verifies the persisted reward record. This is a meaningful gameplay check, but it is not a full victory/loss/draw playthrough for every game and does not replace physical-device or audio verification.
 
 ## Game inventory
 
 | Game | Source-level review | Automated browser mount smoke test |
 |---|---|---|
-| Snake | Collision, food placement, terminal state reviewed; full-board completion fixed | Covered by CI mount smoke test |
-| 2048 | Merge, spawn and no-move logic extracted into tested helpers; continued play after reaching 2048 restored | Covered by CI mount smoke test |
-| Memory | Pair matching and shuffle reviewed; uses Fisher–Yates and blocks rapid third-card selections | Covered by CI mount smoke test |
-| XO | Win/draw detection and CPU move selection reviewed | Covered by CI mount smoke test |
-| Reflex | Reaction timer and false-start flow reviewed | Covered by CI mount smoke test |
-| Lights Out | Board generation and cross-toggle logic reviewed | Covered by CI mount smoke test |
-| Tap Blitz | Timer, keyboard and target changes reviewed | Covered by CI mount smoke test |
-| Word Scramble | Selection, attempt reset and scoring reviewed | Covered by CI mount smoke test |
-| Minesweeper | Safe first click, flood reveal, flags and terminal input reviewed; flag limit and post-game input fixed | Covered by CI mount smoke test |
-| Tetris | Seven standard tetrominoes, rotation, wall kicks, collision and row clearing reviewed | Covered by CI mount smoke test |
-| Breakout | Paddle/ball bounds and brick coordinates reviewed; boundary reflection clamped and paddle reach corrected | Covered by CI mount smoke test |
-| Neon Pong | Ball collision, score and CPU movement reviewed | Covered by CI mount smoke test |
-| Simon Says | Sequence playback and input timing reviewed; flash spacing and timer cleanup fixed | Covered by CI mount smoke test |
-| Hangman | Duplicate-letter counting and terminal state reviewed | Covered by CI mount smoke test |
-| Connect Four | Column legality, win detection and CPU immediate win/block reviewed | Covered by CI mount smoke test |
-| Whack-a-Mole | Timer and target selection reviewed; repeated same-target exploit fixed | Covered by CI mount smoke test |
-| Math Sprint | Timer, answer parsing and score updates reviewed | Covered by CI mount smoke test |
-| Color Clash | Ink/word selection, timer and one-time completion reviewed | Covered by CI mount smoke test |
-| Pattern Recall | Sequence is shown in ordered flashes; all reveal timers clear on reset/unmount | Covered by CI mount smoke test |
-| Higher or Lower | Comparison rules reviewed; equal cards no longer count as higher/lower | Covered by CI mount smoke test |
-| Typing Rush | Input prefix validation and timer completion reviewed | Covered by CI mount smoke test |
-| Number Hunt | Completion path reviewed; terminal state and replay UI fixed | Covered by CI mount smoke test |
-| Mini Sudoku | Puzzle/solution consistency reviewed; incomplete grids can no longer be submitted | Covered by CI mount smoke test |
-| 15-Puzzle | Legal-move shuffle and solved-state detection reviewed | Covered by CI mount smoke test |
-| Sokoban | Wall/box/goal logic reviewed; current level confirmed solvable by state search | Covered by CI mount smoke test |
-| Reversi | Legal flips, pass handling and end detection reviewed; consecutive CPU turns after a player pass fixed | Covered by CI mount smoke test |
-| Mastermind | Duplicate-color feedback and attempt limit reviewed | Covered by CI mount smoke test |
-| Blackjack | Ace valuation, dealer stand threshold and natural blackjack comparison reviewed | Covered by CI mount smoke test |
-| Frogger | Lane movement, lives and crossing completion reviewed; moving-car collisions fixed | Covered by CI mount smoke test |
-| Gem Match | Adjacent swap, match scan, refill, cascades and move accounting reviewed; dead boards after refills are reshuffled | Covered by CI mount smoke test |
-| Maze Runner | Wall boundaries, key/exit conditions and reachability reviewed; exit is reachable | Covered by CI mount smoke test |
+| Snake | Collision, food placement, terminal state reviewed; full-board completion fixed | Covered by mount and gameplay interaction tests in Playwright CI |
+| 2048 | Merge, spawn and no-move logic extracted into tested helpers; continued play after reaching 2048 restored | Covered by mount and gameplay interaction tests in Playwright CI |
+| Memory | Pair matching and shuffle reviewed; uses Fisher–Yates and blocks rapid third-card selections | Covered by mount and gameplay interaction tests in Playwright CI |
+| XO | Win/draw detection and CPU move selection reviewed | Covered by mount and gameplay interaction tests in Playwright CI |
+| Reflex | Reaction timer and false-start flow reviewed | Covered by mount and gameplay interaction tests in Playwright CI |
+| Lights Out | Board generation and cross-toggle logic reviewed | Covered by mount and gameplay interaction tests in Playwright CI |
+| Tap Blitz | Timer, keyboard and target changes reviewed | Covered by mount and gameplay interaction tests in Playwright CI |
+| Word Scramble | Selection, attempt reset and scoring reviewed | Covered by mount and gameplay interaction tests in Playwright CI |
+| Minesweeper | Safe first click, flood reveal, flags and terminal input reviewed; flag limit and post-game input fixed | Covered by mount and gameplay interaction tests in Playwright CI |
+| Tetris | Seven standard tetrominoes, rotation, wall kicks, collision and row clearing reviewed | Covered by mount and gameplay interaction tests in Playwright CI |
+| Breakout | Paddle/ball bounds and brick coordinates reviewed; boundary reflection clamped and paddle reach corrected | Covered by mount and gameplay interaction tests in Playwright CI |
+| Neon Pong | Ball collision, score and CPU movement reviewed | Covered by mount and gameplay interaction tests in Playwright CI |
+| Simon Says | Sequence playback and input timing reviewed; flash spacing and timer cleanup fixed | Covered by mount and gameplay interaction tests in Playwright CI |
+| Hangman | Duplicate-letter counting and terminal state reviewed | Covered by mount and gameplay interaction tests in Playwright CI |
+| Connect Four | Column legality, win detection and CPU immediate win/block reviewed | Covered by mount and gameplay interaction tests in Playwright CI |
+| Whack-a-Mole | Timer and target selection reviewed; repeated same-target exploit fixed | Covered by mount and gameplay interaction tests in Playwright CI |
+| Math Sprint | Timer, answer parsing and score updates reviewed | Covered by mount and gameplay interaction tests in Playwright CI |
+| Color Clash | Ink/word selection, timer and one-time completion reviewed | Covered by mount and gameplay interaction tests in Playwright CI |
+| Pattern Recall | Sequence is shown in ordered flashes; all reveal timers clear on reset/unmount | Covered by mount and gameplay interaction tests in Playwright CI |
+| Higher or Lower | Comparison rules reviewed; equal cards no longer count as higher/lower | Covered by mount and gameplay interaction tests in Playwright CI |
+| Typing Rush | Input prefix validation and timer completion reviewed | Covered by mount and gameplay interaction tests in Playwright CI |
+| Number Hunt | Completion path reviewed; terminal state and replay UI fixed | Covered by mount and gameplay interaction tests in Playwright CI |
+| Mini Sudoku | Puzzle/solution consistency reviewed; incomplete grids can no longer be submitted | Covered by mount and gameplay interaction tests in Playwright CI |
+| 15-Puzzle | Legal-move shuffle and solved-state detection reviewed | Covered by mount and gameplay interaction tests in Playwright CI |
+| Sokoban | Wall/box/goal logic reviewed; current level confirmed solvable by state search | Covered by mount and gameplay interaction tests in Playwright CI |
+| Reversi | Legal flips, pass handling and end detection reviewed; consecutive CPU turns after a player pass fixed | Covered by mount and gameplay interaction tests in Playwright CI |
+| Mastermind | Duplicate-color feedback and attempt limit reviewed | Covered by mount and gameplay interaction tests in Playwright CI |
+| Blackjack | Ace valuation, dealer stand threshold and natural blackjack comparison reviewed | Covered by mount and gameplay interaction tests in Playwright CI |
+| Frogger | Lane movement, lives and crossing completion reviewed; moving-car collisions fixed | Covered by mount and gameplay interaction tests in Playwright CI |
+| Gem Match | Adjacent swap, match scan, refill, cascades and move accounting reviewed; dead boards after refills are reshuffled | Covered by mount and gameplay interaction tests in Playwright CI |
+| Maze Runner | Wall boundaries, key/exit conditions and reachability reviewed; exit is reachable | Covered by mount and gameplay interaction tests in Playwright CI |
 
 ## Automated browser smoke coverage
 
