@@ -33,7 +33,6 @@ export default function App() {
   useEffect(()=>{if(save.dailyDate!==todayKey())setSave(s=>({...s,dailyDate:todayKey(),dailyRuns:0,dailyClaimed:false}));},[save.dailyDate,setSave]);
   useEffect(()=>{
     if(!save.musicEnabled){stopArcadeMusic();return;}
-    let disposed=false;
     const startAfterGesture=()=>{
       // Keep the listeners for the entire enabled period. If media fails after
       // playback starts, a later gesture can reload the element and retry it.
@@ -44,7 +43,6 @@ export default function App() {
     document.addEventListener("pointerdown",startAfterGesture);
     document.addEventListener("keydown",startAfterGesture);
     return ()=>{
-      disposed=true;
       document.removeEventListener("pointerdown",startAfterGesture);
       document.removeEventListener("keydown",startAfterGesture);
       stopArcadeMusic();
