@@ -72,7 +72,7 @@ function createSokobanLevel(): SokobanLevel {
     const boxes: number[] = [];
     let valid = true;
     for (const goal of goals) {
-      const candidates: { start: number; path: number[] }[] = [];
+      const candidates: { start: number; path: number[]; behind: number }[] = [];
       for (const delta of SOKOBAN_DIRECTIONS) {
         for (let distance = 1; distance <= 3; distance += 1) {
           const start = goal - delta * distance;
