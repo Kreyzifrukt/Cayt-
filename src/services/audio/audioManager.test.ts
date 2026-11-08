@@ -11,6 +11,11 @@ class FakeAudio {
   loop = false;
   preload = "";
   currentTime = 0;
+  error: { code: number } | null = null;
+  load = vi.fn(() => {
+    this.error = null;
+    this.paused = true;
+  });
   play = vi.fn(async () => {
     if (FakeAudio.failuresRemaining > 0) {
       FakeAudio.failuresRemaining -= 1;
@@ -87,6 +92,17 @@ describe("arcade audio manager", () => {
     expect(FakeAudio.instances).toHaveLength(1);
     expect(FakeAudio.instances[0].volume).toBe(0.36);
     expect(FakeAudio.instances[0].play).toHaveBeenCalledTimes(2);
+  });
+
+  it("reloads music after a media error and retries on a later call", async () => {
+    await audio.startArcadeMusic(0.4);
+    const music = FakeAudio.instances[0];
+    music.error = { code: 2 };
+    music.paused = true;
+
+    expect(await audio.startArcadeMusic(0.4)).toBe(true);
+    expect(music.load).toHaveBeenCalledOnce();
+    expect(music.play).toHaveBeenCalledTimes(2);
   });
 
   it("updates music volume while playing and safely stops playback", async () => {
