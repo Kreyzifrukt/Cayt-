@@ -94,7 +94,7 @@ function createSokobanLevel(): SokobanLevel {
     const playerOptions = shufflePositions(interior.filter((cell) => !reserved.has(cell)));
     if (playerOptions.length) return { player: playerOptions[0], boxes, goals };
   }
-  return { player: 50, boxes: [19, 34, 44], goals: [11, 35, 37] };
+  return { player: 51, boxes: [19, 35, 44], goals: [11, 34, 37] };
 }
 function Sokoban({ done }: { done: Done }) {
   const [level, setLevel] = useState(createSokobanLevel);
@@ -139,6 +139,12 @@ function Sokoban({ done }: { done: Done }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [move]);
   const reset = () => {
+    setPlayer(level.player);
+    setBoxes(level.boxes);
+    setMoves(0);
+    setWon(false);
+  };
+  const nextLevel = () => {
     const next = createSokobanLevel();
     setLevel(next); setPlayer(next.player); setBoxes(next.boxes);
     setMoves(0); setWon(false); setLevelNumber((value) => value + 1);
@@ -154,7 +160,7 @@ function Sokoban({ done }: { done: Done }) {
       })}
     </div>
     <div className="retro-pad"><button onClick={() => move(-8)} aria-label="Move up">↑</button><div><button onClick={() => move(-1)} aria-label="Move left">←</button><button onClick={() => move(8)} aria-label="Move down">↓</button><button onClick={() => move(1)} aria-label="Move right">→</button></div></div>
-    {won && <div className="result"><b>LEVEL CLEARED · NEW LEVEL READY</b><button onClick={reset}>NEXT LEVEL</button></div>}
+    {won && <div className="result"><b>LEVEL CLEARED · NEW LEVEL READY</b><button onClick={nextLevel}>NEXT LEVEL</button></div>}
   </Panel>;
 }
 
