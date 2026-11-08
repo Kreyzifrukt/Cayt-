@@ -482,3 +482,61 @@ test("Color Clash finishes after fifteen seconds with eight correct ink choices"
   await expect(root.locator(".result b")).toHaveText("ROUND COMPLETE");
   assertNoRuntimeErrors(runtimeErrors);
 });
+
+
+test("Sokoban solves the complete three-crate level through keyboard controls", async ({ page }) => {
+  const { root, runtimeErrors } = await openGame(page, 24);
+  const solution = "URULDDRRURUUULLLULLDDRULUR";
+  for (const move of solution) {
+    await page.keyboard.press(
+      move === "U" ? "ArrowUp" :
+      move === "D" ? "ArrowDown" :
+      move === "L" ? "ArrowLeft" : "ArrowRight",
+    );
+  }
+  await expect(root.locator(".result b")).toHaveText("ALL CRATES STORED");
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Maze Runner collects the key before reaching the exit", async ({ page }) => {
+  const { root, runtimeErrors } = await openGame(page, 30);
+  const solution = "DDDDRRRRDDRR";
+  for (const move of solution) {
+    await page.keyboard.press(
+      move === "U" ? "ArrowUp" :
+      move === "D" ? "ArrowDown" :
+      move === "L" ? "ArrowLeft" : "ArrowRight",
+    );
+  }
+  await expect(root.locator(".result b")).toHaveText("MAZE CLEARED");
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Blackjack resolves a stand, dealer draw and player win", async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
+  const { root, runtimeErrors } = await openGame(page, 27);
+  await root.getByRole("button", { name: "DEAL", exact: true }).click();
+  await expect(root.locator(".blackjack-table")).toContainText("YOU · 5");
+  await root.getByRole("button", { name: "STAND", exact: true }).click();
+  await expect(root.locator(".retro-status")).toHaveText("YOU WIN");
+  await expect(root.locator(".result b")).toHaveText("YOU WIN");
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Frogger completes three safe crossings without colliding with traffic", async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
+  await page.clock.install();
+  const { root, runtimeErrors } = await openGame(page, 28);
+  for (let crossing = 0; crossing < 3; crossing += 1) {
+    await page.keyboard.press("ArrowLeft");
+    for (let step = 0; step < 8; step += 1) {
+      await page.keyboard.press("ArrowUp");
+    }
+  }
+  await expect(root.locator(".result b")).toHaveText("CROSSING COMPLETE");
+  assertNoRuntimeErrors(runtimeErrors);
+});
