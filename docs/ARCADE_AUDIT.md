@@ -121,3 +121,15 @@ A source review is not a substitute for exercising the games in a browser. CI no
 5. Recheck Tetris on physical display sizes after the corrected 10×20 playfield, seven-piece set and controls have passed browser automation.
 6. Manually listen to the selected CC0 music loop and effects on desktop and mobile, then verify volume changes, mute, pause, reload, and browser autoplay handling.
 7. Recheck the full dependency audit before any public deployment.
+
+
+## Follow-up fixes from player testing
+
+- Breakout and Neon Pong now accept keyboard controls as well as their on-screen buttons: left/right arrows or A/D for Breakout, and up/down arrows or W/S for Pong.
+- Number Hunt now uses a shuffled 1–100 board, starts an elapsed-time counter on the first tap, and reports the final time and mistakes.
+- Sokoban now generates a new three-crate level after each completion/restart. Layout construction reserves a clear route from each crate's initial position to its goal and a reachable standing cell behind the crate; browser completion tests solve five consecutive generated levels.
+- Reversi now explains the objective, shows the player/CPU disc legend, and highlights every legal move before the player selects a cell.
+- Mastermind now uses visible numbered slots and a six-color palette instead of small text-only dropdowns. The active slot advances after a color choice, and the exact/misplaced feedback rules are shown beside the attempt history.
+- Gem Match now gives immediate feedback when a selected swap is non-adjacent or does not create a match; the E2E test finds and performs a valid swap from the rendered board.
+- Maze Runner now has an explicit 9×9 CSS grid with visible walls, player, key and exit. Keyboard instructions are displayed, and E2E verifies the field renders 81 cells and arrow-key movement updates the player.
+- The gameplay suite now checks keyboard movement for Breakout, Pong and Maze Runner, 100-number completion and timing UI, Mastermind palette selection, a valid Gem Match swap, and multiple generated Sokoban levels.

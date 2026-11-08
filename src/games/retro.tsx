@@ -44,32 +44,117 @@ function Fifteen({ done }: { done: Done }) {
   </Panel>;
 }
 
-const SOKO = ["########", "#  .   #", "#  $   #", "#  ##  #", "# .$ . #", "#   $  #", "#  @   #", "########"];
+type SokobanLevel = { player: number; boxes: number[]; goals: number[] };
+const SOKOBAN_SIZE = 8;
+const SOKOBAN_DIRECTIONS = [-SOKOBAN_SIZE, SOKOBAN_SIZE, -1, 1];
+function shufflePositions(values: number[]) {
+  const result = [...values];
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const target = Math.floor(Math.random() * (index + 1));
+    [result[index], result[target]] = [result[target], result[index]];
+  }
+  return result;
+}
+function createSokobanLevel(): SokobanLevel {
+  const interior = Array.from({ length: 36 }, (_, index) => {
+    const row = Math.floor(index / 6) + 1;
+    const column = index % 6 + 1;
+    return row * SOKOBAN_SIZE + column;
+  });
+  const isInterior = (cell: number) => {
+    const row = Math.floor(cell / SOKOBAN_SIZE);
+    const column = cell % SOKOBAN_SIZE;
+    return row >= 1 && row <= 6 && column >= 1 && column <= 6;
+  };
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    const goals = shufflePositions(interior).slice(0, 3);
+    const reserved = new Set(goals);
+    const boxes: number[] = [];
+    let valid = true;
+    for (const goal of goals) {
+      const candidates: { start: number; path: number[] }[] = [];
+      for (const delta of SOKOBAN_DIRECTIONS) {
+        for (let distance = 1; distance <= 3; distance += 1) {
+          const start = goal - delta * distance;
+          const behind = start - delta;
+          const path = Array.from({ length: distance + 1 }, (_, step) => start + delta * step);
+          if (!isInterior(behind) || !path.every(isInterior) || reserved.has(behind)) continue;
+          if (path.some((cell) => cell !== goal && reserved.has(cell))) continue;
+          candidates.push({ start, path, behind });
+        }
+      }
+      const chosenIndex = shufflePositions(candidates.map((_, index) => index))[0];
+      const chosen = chosenIndex === undefined ? undefined : candidates[chosenIndex];
+      if (!chosen) { valid = false; break; }
+      boxes.push(chosen.start);
+      chosen.path.forEach((cell) => reserved.add(cell));
+      reserved.add(chosen.behind);
+    }
+    if (!valid || boxes.length !== 3) continue;
+    const playerOptions = shufflePositions(interior.filter((cell) => !reserved.has(cell)));
+    if (playerOptions.length) return { player: playerOptions[0], boxes, goals };
+  }
+  return { player: 50, boxes: [19, 34, 44], goals: [11, 35, 37] };
+}
 function Sokoban({ done }: { done: Done }) {
-  const [player, setPlayer] = useState(SOKO.join("").indexOf("@"));
-  const [boxes, setBoxes] = useState(SOKO.join("").split("").flatMap((v, i) => v === "$" ? [i] : []));
-  const [moves, setMoves] = useState(0), [won, setWon] = useState(false);
-  const walls = new Set(SOKO.join("").split("").flatMap((v, i) => v === "#" ? [i] : []));
-  const goals = new Set(SOKO.join("").split("").flatMap((v, i) => v === "." ? [i] : []));
+  const [level, setLevel] = useState(createSokobanLevel);
+  const [player, setPlayer] = useState(level.player);
+  const [boxes, setBoxes] = useState(level.boxes);
+  const [moves, setMoves] = useState(0);
+  const [levelNumber, setLevelNumber] = useState(1);
+  const [won, setWon] = useState(false);
+  const walls = new Set(Array.from({ length: 64 }, (_, index) => {
+    const row = Math.floor(index / SOKOBAN_SIZE);
+    const column = index % SOKOBAN_SIZE;
+    return row === 0 || row === 7 || column === 0 || column === 7 ? index : -1;
+  }).filter((index) => index >= 0));
+  const goals = new Set(level.goals);
   const move = useCallback((delta: number) => {
     if (won) return;
     const next = player + delta;
-    if (walls.has(next)) return;
-    const box = boxes.indexOf(next); let updated = boxes;
-    if (box >= 0) { const beyond = next + delta; if (walls.has(beyond) || boxes.includes(beyond)) return; updated = [...boxes]; updated[box] = beyond; setBoxes(updated); }
-    setPlayer(next); setMoves((v) => v + 1);
-    if (goals.size === updated.filter((v) => goals.has(v)).length) { setWon(true); done(Math.max(100, 1000 - (moves + 1) * 12), true); }
+    if (next < 0 || next >= 64 || walls.has(next)) return;
+    const box = boxes.indexOf(next);
+    let updated = boxes;
+    if (box >= 0) {
+      const beyond = next + delta;
+      if (beyond < 0 || beyond >= 64 || walls.has(beyond) || boxes.includes(beyond)) return;
+      updated = [...boxes];
+      updated[box] = beyond;
+      setBoxes(updated);
+    }
+    setPlayer(next);
+    setMoves((value) => value + 1);
+    if (goals.size === updated.filter((position) => goals.has(position)).length) {
+      setWon(true);
+      done(Math.max(100, 1000 - (moves + 1) * 12), true);
+    }
   }, [boxes, done, goals, moves, player, walls, won]);
   useEffect(() => {
-    const key = (e: KeyboardEvent) => { const map: Record<string, number> = { ArrowUp: -8, w: -8, ArrowDown: 8, s: 8, ArrowLeft: -1, a: -1, ArrowRight: 1, d: 1 }; if (map[e.key] !== undefined) { e.preventDefault(); move(map[e.key]); } };
-    window.addEventListener("keydown", key); return () => window.removeEventListener("keydown", key);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      const map: Record<string, number> = { arrowup: -8, w: -8, arrowdown: 8, s: 8, arrowleft: -1, a: -1, arrowright: 1, d: 1 };
+      if (map[key] !== undefined) { event.preventDefault(); move(map[key]); }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [move]);
-  const reset = () => { setPlayer(SOKO.join("").indexOf("@")); setBoxes(SOKO.join("").split("").flatMap((v, i) => v === "$" ? [i] : [])); setMoves(0); setWon(false); };
-  return <Panel title="SOKOBAN · PUSH, NEVER PULL" score={moves} reset={reset}>
-    <p className="retro-note">Push every crate onto a storage point. You cannot pull crates back.</p>
-    <div className="sokoban-board">{SOKO.join("").split("").map((v, i) => <span key={i} className={["sokoban-cell", v === "#" ? "wall" : "", goals.has(i) ? "goal" : "", boxes.includes(i) ? "box" : "", player === i ? "player" : ""].join(" ")}>{player === i ? "●" : boxes.includes(i) ? "■" : goals.has(i) ? "◆" : ""}</span>)}</div>
-    <div className="retro-pad"><button onClick={() => move(-8)}>↑</button><div><button onClick={() => move(-1)}>←</button><button onClick={() => move(8)}>↓</button><button onClick={() => move(1)}>→</button></div></div>
-    {won && <div className="result"><b>ALL CRATES STORED</b><button onClick={reset}>PLAY AGAIN</button></div>}
+  const reset = () => {
+    const next = createSokobanLevel();
+    setLevel(next); setPlayer(next.player); setBoxes(next.boxes);
+    setMoves(0); setWon(false); setLevelNumber((value) => value + 1);
+  };
+  return <Panel title={`SOKOBAN · LEVEL ${levelNumber}`} score={moves} reset={reset}>
+    <p className="retro-note">Push all three crates onto the glowing goals. Each new level is generated with a guaranteed push route. Use arrows or WASD.</p>
+    <div className="sokoban-board" role="grid" aria-label="Sokoban level">
+      {Array.from({ length: 64 }, (_, index) => {
+        const box = boxes.includes(index), goal = goals.has(index);
+        return <span key={index} role="gridcell" className={["sokoban-cell", walls.has(index) ? "wall" : "", goal ? "goal" : "", box ? "box" : "", player === index ? "player" : ""].join(" ")}>
+          {player === index ? "●" : box ? "■" : goal ? "◆" : ""}
+        </span>;
+      })}
+    </div>
+    <div className="retro-pad"><button onClick={() => move(-8)} aria-label="Move up">↑</button><div><button onClick={() => move(-1)} aria-label="Move left">←</button><button onClick={() => move(8)} aria-label="Move down">↓</button><button onClick={() => move(1)} aria-label="Move right">→</button></div></div>
+    {won && <div className="result"><b>LEVEL CLEARED · NEW LEVEL READY</b><button onClick={reset}>NEXT LEVEL</button></div>}
   </Panel>;
 }
 
@@ -85,49 +170,62 @@ function flips(board: Disk[], index: number, player: Disk) {
   return found;
 }
 function Reversi({ done }: { done: Done }) {
-  const initial=()=>{const board:Disk[]=Array(64).fill(0);board[27]=2;board[28]=1;board[35]=1;board[36]=2;return board;};
-  const [board,setBoard]=useState(initial),[ended,setEnded]=useState(false),[message,setMessage]=useState("YOUR TURN");
-  const finish=(next:Disk[])=>{const mine=next.filter(value=>value===1).length,cpu=next.filter(value=>value===2).length;setBoard(next);setEnded(true);setMessage(mine>cpu?"YOU WIN":mine===cpu?"DRAW":"CPU WINS");done(mine*10,mine>cpu,mine===cpu);};
-  const bestMove=(position:Disk[],player:Disk)=>{
-    const options=position.flatMap((value,index)=>value===0&&flips(position,index,player).length?[index]:[]);
-    options.sort((a,b)=>([0,7,56,63].includes(b)?100:0)+flips(position,b,player).length-(([0,7,56,63].includes(a)?100:0)+flips(position,a,player).length));
+  const initial = () => {
+    const board: Disk[] = Array(64).fill(0);
+    board[27] = 2; board[28] = 1; board[35] = 1; board[36] = 2;
+    return board;
+  };
+  const [board, setBoard] = useState(initial);
+  const [ended, setEnded] = useState(false);
+  const [message, setMessage] = useState("YOUR TURN · PLAY A GLOWING CELL");
+  const finish = (next: Disk[]) => {
+    const mine = next.filter((value) => value === 1).length;
+    const cpu = next.filter((value) => value === 2).length;
+    setBoard(next); setEnded(true);
+    setMessage(mine > cpu ? "YOU WIN" : mine === cpu ? "DRAW" : "CPU WINS");
+    done(mine * 10, mine > cpu, mine === cpu);
+  };
+  const bestMove = (position: Disk[], player: Disk) => {
+    const options = position.flatMap((value, index) => value === 0 && flips(position, index, player).length ? [index] : []);
+    options.sort((a, b) =>
+      ([0, 7, 56, 63].includes(b) ? 100 : 0) + flips(position, b, player).length -
+      (([0, 7, 56, 63].includes(a) ? 100 : 0) + flips(position, a, player).length),
+    );
     return options[0];
   };
-  const apply=(position:Disk[],index:number,player:Disk)=>{
-    const next=[...position],captured=flips(position,index,player);
-    next[index]=player;captured.forEach(cell=>next[cell]=player);return next;
+  const apply = (position: Disk[], index: number, player: Disk) => {
+    const next = [...position], captured = flips(position, index, player);
+    next[index] = player; captured.forEach((cell) => { next[cell] = player; });
+    return next;
   };
-  const play=(index:number)=>{
-    if(ended)return;
-    const captured=flips(board,index,1);
-    if(!captured.length)return;
-    let next=apply(board,index,1);
-    while(true){
-      const cpuMove=bestMove(next,2);
-      const playerMove=bestMove(next,1);
-      if(cpuMove===undefined&&playerMove===undefined){finish(next);return;}
-      if(cpuMove===undefined){
-        setBoard(next);
-        setMessage("CPU PASSES · YOUR TURN");
-        return;
-      }
-      next=apply(next,cpuMove,2);
-      if(bestMove(next,1)!==undefined){
-        setBoard(next);
-        setMessage("YOUR TURN");
-        return;
-      }
-      // If the player has no legal move, the CPU takes another turn automatically.
+  const legalMoves = board.map((value, index) => value === 0 && flips(board, index, 1).length > 0);
+  const play = (index: number) => {
+    if (ended) return;
+    const captured = flips(board, index, 1);
+    if (!captured.length) return;
+    let next = apply(board, index, 1);
+    while (true) {
+      const cpuMove = bestMove(next, 2), playerMove = bestMove(next, 1);
+      if (cpuMove === undefined && playerMove === undefined) { finish(next); return; }
+      if (cpuMove === undefined) { setBoard(next); setMessage("CPU PASSES · YOUR TURN"); return; }
+      next = apply(next, cpuMove, 2);
+      if (bestMove(next, 1) !== undefined) { setBoard(next); setMessage("YOUR TURN · PLAY A GLOWING CELL"); return; }
     }
   };
-  const reset=()=>{setBoard(initial());setEnded(false);setMessage("YOUR TURN");};
-  return <Panel title="REVERSI · CONTROL THE BOARD" score={board.filter(value=>value===1).length+" : "+board.filter(value=>value===2).length} reset={reset}>
-    <p className="retro-note">Trap the CPU's discs in a straight line to flip them. Corners are valuable.</p>
-    <div className="reversi-board">{board.map((value,index)=><button key={index} className="reversi-cell" disabled={ended||!flips(board,index,1).length} onClick={()=>play(index)} aria-label={`Row ${Math.floor(index/8)+1}, column ${index%8+1}`}><i className={value===1?"mint-disc":value===2?"cpu-disc":""}/></button>)}</div>
+  const reset = () => { setBoard(initial()); setEnded(false); setMessage("YOUR TURN · PLAY A GLOWING CELL"); };
+  return <Panel title="REVERSI · FLIP THE CPU DISCS" score={board.filter((value) => value === 1).length + " : " + board.filter((value) => value === 2).length} reset={reset}>
+    <p className="retro-note">Place a disc to trap CPU discs between yours in a straight line. Only glowing empty cells are legal. Corners are powerful.</p>
+    <div className="reversi-legend"><span><i className="mint-disc"/> YOU</span><span><i className="cpu-disc"/> CPU</span><span><i className="legal-dot"/> LEGAL MOVE</span></div>
+    <div className="reversi-board" role="grid" aria-label="Reversi board">
+      {board.map((value, index) => <button key={index} role="gridcell" className={["reversi-cell", legalMoves[index] ? "legal" : ""].join(" ")} disabled={ended || !legalMoves[index]} onClick={() => play(index)} aria-label={`Row ${Math.floor(index / 8) + 1}, column ${index % 8 + 1}${legalMoves[index] ? ", legal move" : ""}`}>
+        <i className={value === 1 ? "mint-disc" : value === 2 ? "cpu-disc" : legalMoves[index] ? "legal-dot" : ""}/>
+      </button>)}
+    </div>
     <div className="retro-status">{message}</div>
-    {ended&&<div className="result"><b>{message}</b><button onClick={reset}>REMATCH</button></div>}
+    {ended && <div className="result"><b>{message}</b><button onClick={reset}>REMATCH</button></div>}
   </Panel>;
 }
+
 const CODE = ["#79f0bd","#8db7ff","#c39aff","#ff8da7","#ffd16e","#72dce8"];
 function feedback(secret: number[], guess: number[]) {
   let exact=0; const left=[...secret], extra:number[]=[];
@@ -136,19 +234,46 @@ function feedback(secret: number[], guess: number[]) {
   return {exact,misplaced};
 }
 function Mastermind({ done }: { done: Done }) {
-  const [secret,setSecret]=useState(()=>Array.from({length:4},()=>Math.floor(Math.random()*6)));
-  const [guess,setGuess]=useState([0,1,2,3]);
-  const [history,setHistory]=useState<{values:number[];exact:number;misplaced:number}[]>([]);
-  const [ended,setEnded]=useState(false);
-  const submit=()=>{if(ended)return;const result=feedback(secret,guess),next=[...history,{values:[...guess],...result}];setHistory(next);if(result.exact===4){setEnded(true);done((9-next.length)*100,true);}else if(next.length===8){setEnded(true);done(50,false);}else setGuess([0,1,2,3]);};
-  const reset=()=>{setSecret(Array.from({length:4},()=>Math.floor(Math.random()*6)));setGuess([0,1,2,3]);setHistory([]);setEnded(false);};
-  return <Panel title="MASTERMIND · CRACK THE CODE" score={history.length+"/8"} reset={reset}>
-    <p className="retro-note">Find the hidden four-color code. Exact = right color and place. Misplaced = right color, wrong place. Repeats are allowed.</p>
-    <div className="master-code">{guess.map((v,i)=><select key={i} aria-label={"Code slot "+(i+1)} value={v} disabled={ended} onChange={e=>setGuess(old=>old.map((x,j)=>j===i?Number(e.target.value):x))}>{CODE.map((color,j)=><option key={color} value={j}>COLOR {j+1}</option>)}</select>)}</div>
-    <div className="master-swatches">{guess.map((v,i)=><i key={i} style={{background:CODE[v]}}/>)}</div>
+  const [secret, setSecret] = useState(() => Array.from({ length: 4 }, () => Math.floor(Math.random() * 6)));
+  const [guess, setGuess] = useState([0, 1, 2, 3]);
+  const [activeSlot, setActiveSlot] = useState(0);
+  const [history, setHistory] = useState<{ values: number[]; exact: number; misplaced: number }[]>([]);
+  const [ended, setEnded] = useState(false);
+  const chooseColor = (color: number) => {
+    if (ended) return;
+    setGuess((current) => current.map((value, index) => index === activeSlot ? color : value));
+    if (activeSlot < 3) setActiveSlot((slot) => slot + 1);
+  };
+  const submit = () => {
+    if (ended) return;
+    const result = feedback(secret, guess), next = [...history, { values: [...guess], ...result }];
+    setHistory(next);
+    if (result.exact === 4) { setEnded(true); done((9 - next.length) * 100, true); }
+    else if (next.length === 8) { setEnded(true); done(50, false); }
+  };
+  const reset = () => {
+    setSecret(Array.from({ length: 4 }, () => Math.floor(Math.random() * 6)));
+    setGuess([0, 1, 2, 3]); setActiveSlot(0); setHistory([]); setEnded(false);
+  };
+  return <Panel title="MASTERMIND · BREAK THE 4-COLOR CODE" score={history.length + "/8"} reset={reset}>
+    <p className="retro-note">Select a slot, choose its color, then submit all four. Repeated colors are allowed. You have eight attempts.</p>
+    <div className="master-slots" aria-label="Current code guess">
+      {guess.map((value, index) => <button key={index} className={activeSlot === index ? "master-slot active" : "master-slot"} style={{ background: CODE[value] }} onClick={() => setActiveSlot(index)} disabled={ended} aria-label={`Select slot ${index + 1}`}>
+        <span>{index + 1}</span>
+      </button>)}
+    </div>
+    <p className="master-active-slot">EDITING SLOT {activeSlot + 1} OF 4</p>
+    <div className="master-palette" aria-label="Choose a color">
+      {CODE.map((color, index) => <button key={color} className="master-color" style={{ background: color }} onClick={() => chooseColor(index)} disabled={ended} aria-label={`Choose color ${index + 1}`} title={`Color ${index + 1}`}/>)}
+    </div>
+    <div className="master-feedback-help"><span><b>EXACT</b> = right color, right slot</span><span><b>MISPLACED</b> = right color, wrong slot</span></div>
     <button className="primary retro-submit" onClick={submit} disabled={ended}>SUBMIT GUESS</button>
-    <div className="master-history">{history.map((row,i)=><div key={i}><span>{i+1}</span>{row.values.map((v,j)=><i key={j} style={{background:CODE[v]}}/>)}<b>{row.exact} exact · {row.misplaced} misplaced</b></div>)}</div>
-    {ended&&<div className="result"><b>{history[history.length-1]?.exact===4?"CODE CRACKED":"CODE: "+secret.map(v=>v+1).join(" · ")}</b><button onClick={reset}>NEW CODE</button></div>}
+    <div className="master-history">{history.map((row, index) => <div key={index}>
+      <span>{index + 1}</span>
+      {row.values.map((value, slot) => <i key={slot} style={{ background: CODE[value] }} aria-label={`Color ${value + 1}`}/>)}
+      <b>{row.exact} exact · {row.misplaced} misplaced</b>
+    </div>)}</div>
+    {ended && <div className="result"><b>{history[history.length - 1]?.exact === 4 ? "CODE CRACKED" : "CODE: " + secret.map((value) => value + 1).join(" · ")}</b><button onClick={reset}>NEW CODE</button></div>}
   </Panel>;
 }
 
@@ -190,40 +315,65 @@ function Frogger({done}:{done:Done}){
 const GEMS=["mint","blue","pink","gold","violet"];
 function MatchThree({done}:{done:Done}){
   const [board,setBoard]=useState(createGemBoard),[selected,setSelected]=useState<number|null>(null),[score,setScore]=useState(0),[moves,setMoves]=useState(25),[ended,setEnded]=useState(false);
+  const [status,setStatus]=useState("TAP A GEM, THEN TAP A NEIGHBOR");
   const tap=(index:number)=>{
     if(ended)return;
-    if(selected===null){setSelected(index);return;}
-    if(Math.abs(selected%7-index%7)+Math.abs(Math.floor(selected/7)-Math.floor(index/7))!==1){setSelected(index);return;}
+    if(selected===null){setSelected(index);setStatus("NOW TAP AN ADJACENT GEM");return;}
+    if(selected===index){setSelected(null);setStatus("SELECT A GEM TO MOVE");return;}
+    if(Math.abs(selected%7-index%7)+Math.abs(Math.floor(selected/7)-Math.floor(index/7))!==1){setSelected(index);setStatus("CHOOSE A GEM NEXT TO THE HIGHLIGHTED ONE");return;}
     const next=board.map(row=>[...row]),ar=Math.floor(selected/7),ac=selected%7,br=Math.floor(index/7),bc=index%7;
     [next[ar][ac],next[br][bc]]=[next[br][bc],next[ar][ac]];
-    if(!findGemMatches(next).size){setSelected(null);return;}
+    if(!findGemMatches(next).size){setSelected(null);setStatus("NO MATCH · SWAP MUST MAKE A LINE OF 3 OR MORE");return;}
     const resolved=resolveGemCascades(next);
     const total=score+resolved.cleared*20,left=moves-1;
     setBoard(ensurePlayableGemBoard(resolved.board));setScore(total);setMoves(left);setSelected(null);
+    setStatus(`MATCH! +${resolved.cleared*20} POINTS`);
     if(total>=600){setEnded(true);done(total,true);}else if(left===0){setEnded(true);done(total,false);}
   };
-  const reset=()=>{setBoard(createGemBoard());setSelected(null);setScore(0);setMoves(25);setEnded(false);};
+  const reset=()=>{setBoard(createGemBoard());setSelected(null);setScore(0);setMoves(25);setEnded(false);setStatus("TAP A GEM, THEN TAP A NEIGHBOR");};
   return <Panel title="GEM MATCH · THREE IN A ROW" score={score} reset={reset}>
-    <p className="retro-note">Swap neighboring gems to match three or more. Reach 600 points within 25 moves.</p>
+    <p className="retro-note">Tap one gem, then an adjacent gem. The swap is accepted only if it makes a line of three or more. Reach 600 points within 25 moves.</p>
     <div className="match-meta"><span>{moves} MOVES LEFT</span><b>TARGET 600</b></div>
-    <div className="match-board">{board.flatMap((row,r)=>row.map((gem,c)=><button key={r*7+c} className={"gem gem-"+GEMS[gem]+(selected===r*7+c?" selected":"")} onClick={()=>tap(r*7+c)} aria-label={"Row "+(r+1)+", column "+(c+1)}/>))}</div>
+    <div className="match-board" aria-label="Gem Match board">{board.flatMap((row,r)=>row.map((gem,c)=><button key={r*7+c} className={"gem gem-"+GEMS[gem]+(selected===r*7+c?" selected":"")} onClick={()=>tap(r*7+c)} aria-pressed={selected===r*7+c} aria-label={`${GEMS[gem]} gem, row ${r+1}, column ${c+1}`}/>))}</div>
+    <div className="retro-status" aria-live="polite">{status}</div>
     {ended&&<div className="result"><b>{score>=600?"TARGET REACHED":"FINAL SCORE: "+score}</b><button onClick={reset}>PLAY AGAIN</button></div>}
   </Panel>;
 }
 
-const MAZE=["#########","#   #   #","# # # # #","# #   # #","# ### # #","#   K   #","### # ###","#      E#","#########"];
-function MazeRunner({done}:{done:Done}){
-  const [player,setPlayer]=useState(10),[keyFound,setKeyFound]=useState(false),[moves,setMoves]=useState(0),[ended,setEnded]=useState(false);
-  const walls=new Set(MAZE.join("").split("").flatMap((v,i)=>v==="#"?[i]:[])),key=MAZE.join("").indexOf("K"),exit=MAZE.join("").indexOf("E");
-  const move=useCallback((delta:number)=>{if(ended)return;const next=player+delta;if(walls.has(next)||next<0||next>=81||(delta===1&&player%9===8)||(delta===-1&&player%9===0))return;setPlayer(next);setMoves(v=>v+1);if(next===key)setKeyFound(true);if(next===exit&&keyFound){setEnded(true);done(Math.max(100,800-(moves+1)*8),true);}},[done,ended,exit,key,keyFound,moves,player,walls]);
-  useEffect(()=>{const keydown=(e:KeyboardEvent)=>{const d:Record<string,number>={ArrowUp:-9,w:-9,ArrowDown:9,s:9,ArrowLeft:-1,a:-1,ArrowRight:1,d:1};if(d[e.key]!==undefined){e.preventDefault();move(d[e.key]);}};window.addEventListener("keydown",keydown);return()=>window.removeEventListener("keydown",keydown);},[move]);
-  const reset=()=>{setPlayer(10);setKeyFound(false);setMoves(0);setEnded(false);};
+const MAZE = ["#########", "#   #   #", "# # # # #", "# #   # #", "# ### # #", "#   K   #", "### # ###", "#      E#", "#########"];
+function MazeRunner({ done }: { done: Done }) {
+  const [player, setPlayer] = useState(10), [keyFound, setKeyFound] = useState(false), [moves, setMoves] = useState(0), [ended, setEnded] = useState(false);
+  const cells = MAZE.join("");
+  const walls = new Set(cells.split("").flatMap((value, index) => value === "#" ? [index] : []));
+  const key = cells.indexOf("K"), exit = cells.indexOf("E");
+  const move = useCallback((delta: number) => {
+    if (ended) return;
+    const next = player + delta;
+    if (walls.has(next) || next < 0 || next >= 81 || (delta === 1 && player % 9 === 8) || (delta === -1 && player % 9 === 0)) return;
+    setPlayer(next); setMoves((value) => value + 1);
+    if (next === key) setKeyFound(true);
+    if (next === exit && keyFound) { setEnded(true); done(Math.max(100, 800 - (moves + 1) * 8), true); }
+  }, [done, ended, exit, key, keyFound, moves, player, walls]);
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const map: Record<string, number> = { arrowup: -9, w: -9, arrowdown: 9, s: 9, arrowleft: -1, a: -1, arrowright: 1, d: 1 };
+      const delta = map[event.key.toLowerCase()];
+      if (delta !== undefined) { event.preventDefault(); move(delta); }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [move]);
+  const reset = () => { setPlayer(10); setKeyFound(false); setMoves(0); setEnded(false); };
   return <Panel title="MAZE RUNNER · FIND THE KEY" score={moves} reset={reset}>
-    <p className="retro-note">Find the key, then reach the exit. Dead ends are still dead ends.</p>
-    <div className="maze-board">{MAZE.join("").split("").map((v,i)=><span key={i} className={["maze-cell",v==="#"?"wall":"",v==="K"&&!keyFound?"key-cell":"",v==="E"?"exit-cell":"",player===i?"runner":""].join(" ")}>{player===i?"●":v==="K"&&!keyFound?"◆":v==="E"?"⇧":""}</span>)}</div>
-    <div className="retro-status">{keyFound?"KEY ACQUIRED · FIND THE EXIT":"KEY NOT FOUND"}</div>
-    <div className="retro-pad"><button onClick={()=>move(-9)}>↑</button><div><button onClick={()=>move(-1)}>←</button><button onClick={()=>move(9)}>↓</button><button onClick={()=>move(1)}>→</button></div></div>
-    {ended&&<div className="result"><b>MAZE CLEARED</b><button onClick={reset}>RUN AGAIN</button></div>}
+    <p className="retro-note">Find the key, then reach the exit. Use arrow keys or WASD. Green dot = player, diamond = key, arrow = exit.</p>
+    <div className="maze-board" role="grid" aria-label="Maze playfield">
+      {cells.split("").map((value, index) => <span key={index} role="gridcell" className={["maze-cell", value === "#" ? "wall" : "", value === "K" && !keyFound ? "key-cell" : "", value === "E" ? "exit-cell" : "", player === index ? "runner" : ""].join(" ")}>
+        {player === index ? "●" : value === "K" && !keyFound ? "◆" : value === "E" ? "⇧" : ""}
+      </span>)}
+    </div>
+    <div className="retro-status">{keyFound ? "KEY ACQUIRED · FIND THE EXIT" : "KEY NOT FOUND"}</div>
+    <div className="retro-pad"><button onClick={() => move(-9)} aria-label="Move up">↑</button><div><button onClick={() => move(-1)} aria-label="Move left">←</button><button onClick={() => move(9)} aria-label="Move down">↓</button><button onClick={() => move(1)} aria-label="Move right">→</button></div></div>
+    {ended && <div className="result"><b>MAZE CLEARED</b><button onClick={reset}>RUN AGAIN</button></div>}
   </Panel>;
 }
 

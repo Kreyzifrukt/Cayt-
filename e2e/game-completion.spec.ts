@@ -217,6 +217,8 @@ test("Mini Sudoku validates a complete correct 4×4 solution and records the res
 
 test("Maze Runner finds its key, reaches the exit and completes the game", async ({ page }) => {
   const { root, runtimeErrors } = await openGame(page, 30);
+  await expect(root.locator(".maze-board")).toBeVisible();
+  await expect(root.locator(".maze-cell")).toHaveCount(81);
   const path = await solveMaze(root);
   expect(path.length).toBeGreaterThan(0);
   for (const key of path) {
@@ -233,14 +235,20 @@ test("Maze Runner finds its key, reaches the exit and completes the game", async
   assertNoRuntimeErrors(runtimeErrors);
 });
 
-test("Sokoban solves the complete level without pushing a crate through a wall", async ({ page }) => {
+test("Sokoban generates multiple solvable levels", async ({ page }) => {
   const { root, runtimeErrors } = await openGame(page, 24);
-  const path = await solveSokoban(root);
-  expect(path.length).toBeGreaterThan(0);
-  for (const key of path) {
-    await page.keyboard.press(key);
+  for (let level = 1; level <= 5; level += 1) {
+    await expect(root.locator(".sokoban-board > .sokoban-cell")).toHaveCount(64);
+    const path = await solveSokoban(root);
+    expect(path.length, `level ${level} should have a solution`).toBeGreaterThan(0);
+    for (const key of path) {
+      await page.keyboard.press(key);
+    }
+    await expect(root.locator(".result b")).toHaveText("LEVEL CLEARED · NEW LEVEL READY");
+    if (level < 5) {
+      await root.getByRole("button", { name: "NEXT LEVEL" }).click();
+    }
   }
-  await expect(root.locator(".result b")).toHaveText("ALL CRATES STORED");
   assertNoRuntimeErrors(runtimeErrors);
 });
 

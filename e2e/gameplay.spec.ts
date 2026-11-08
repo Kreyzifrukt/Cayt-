@@ -244,21 +244,26 @@ test.describe("gameplay input checks", () => {
 
   test("22 · Number Hunt completes all 25 ordered targets and records rewards once", async ({ page }) => {
     const { root, runtimeErrors } = await openGame(page, 21);
-    for (let number = 1; number <= 25; number += 1) {
-      await root.getByRole("button", { name: String(number), exact: true }).click();
+    await expect(root.locator(".number-grid button")).toHaveCount(100);
+    await expect(root.locator(".number-hunt-meta")).toContainText("TIME");
+    for (let number = 1; number <= 100; number += 1) {
+      await root.getByRole("button", { name: `Number ${number}`, exact: true }).click();
     }
-    await expect(root.locator(".result")).toContainText("ALL 25 FOUND");
-    await expect(root.getByRole("button", { name: "25", exact: true })).toBeDisabled();
-    await expect.poll(async () => page.evaluate(() => {
-      const raw = localStorage.getItem("neon-arcade-save");
-      return raw ? (JSON.parse(raw) as { xp: number }).xp : null;
-    })).toBe(110);
+    await expect(root.locator(".result")).toContainText("ALL 100 FOUND");
+    await expect(root.getByRole("button", { name: "Number 100", exact: true })).toBeDisabled();
     const save = await page.evaluate(() => {
       const raw = localStorage.getItem("neon-arcade-save");
-      return raw ? JSON.parse(raw) as { xp: number; coins: number; played: number; wins: number; history: unknown[] } : null;
+      return raw ? JSON.parse(raw) as { xp: number; coins: number; played: number; wins: number; history: { score: number }[] } : null;
     });
+    await expect.poll(() => page.evaluate(() => {
+      const raw = localStorage.getItem("neon-arcade-save");
+      return raw ? (JSON.parse(raw) as { played: number }).played : 0;
+    })).toBe(1);
     expect(save).not.toBeNull();
-    expect(save).toMatchObject({ xp: 110, coins: 5, played: 1, wins: 1 });
+    expect(save).toMatchObject({ played: 1, wins: 1 });
+    const score = save!.history[0].score;
+    expect(save!.xp).toBe(Math.max(5, Math.round(score / 5) + 10));
+    expect(save!.coins).toBe(Math.max(1, Math.floor(score / 100)));
     expect(save!.history).toHaveLength(1);
     expectNoRuntimeErrors(runtimeErrors);
   });
@@ -310,9 +315,12 @@ test.describe("gameplay input checks", () => {
 
   test("27 · Mastermind submits a guess and adds feedback to history", async ({ page }) => {
     const { root, runtimeErrors } = await openGame(page, 26);
-    await root.getByLabel("Code slot 1").selectOption("1");
+    await root.getByRole("button", { name: "Select slot 1" }).click();
+    await root.getByRole("button", { name: "Choose color 2" }).click();
+    await expect(root.locator(".master-active-slot")).toHaveText("EDITING SLOT 2 OF 4");
     await root.getByRole("button", { name: "SUBMIT GUESS" }).click();
     await expect(root.locator(".master-history > div")).toHaveCount(1);
+    await expect(root.locator(".master-feedback-help")).toContainText("EXACT");
     expectNoRuntimeErrors(runtimeErrors);
   });
 
@@ -336,16 +344,48 @@ test.describe("gameplay input checks", () => {
     expectNoRuntimeErrors(runtimeErrors);
   });
 
-  test("30 · Gem Match selects a gem for an adjacent swap", async ({ page }) => {
+  test("30 · Gem Match accepts a legal adjacent swap and explains rejected moves", async ({ page }) => {
     const { root, runtimeErrors } = await openGame(page, 29);
-    await root.locator(".match-board .gem").first().click();
+    const move = await root.locator(".match-board").evaluate((board) => {
+      const cells = Array.from(board.querySelectorAll("button")) as HTMLButtonElement[];
+      const values = cells.map((cell) => {
+        const name = Array.from(cell.classList).find((value) => value.startsWith("gem-") && value !== "gem-selected");
+        return name ?? "";
+      });
+      const makesMatch = (grid: string[]) => {
+        for (let row = 0; row < 7; row += 1) {
+          for (let column = 0; column < 7; column += 1) {
+            const value = grid[row * 7 + column];
+            if (column <= 4 && value === grid[row * 7 + column + 1] && value === grid[row * 7 + column + 2]) return true;
+            if (row <= 4 && value === grid[(row + 1) * 7 + column] && value === grid[(row + 2) * 7 + column]) return true;
+          }
+        }
+        return false;
+      };
+      for (let index = 0; index < values.length; index += 1) {
+        for (const neighbor of [index + 1, index + 7]) {
+          if (neighbor >= values.length || (neighbor === index + 1 && index % 7 === 6)) continue;
+          const swapped = [...values];
+          [swapped[index], swapped[neighbor]] = [swapped[neighbor], swapped[index]];
+          if (makesMatch(swapped)) return [index, neighbor];
+        }
+      }
+      return null;
+    });
+    expect(move).not.toBeNull();
+    await root.locator(".match-board .gem").nth(move![0]).click();
     await expect(root.locator(".match-board .gem.selected")).toHaveCount(1);
+    await root.locator(".match-board .gem").nth(move![1]).click();
+    await expect(root.locator(".retro-status")).toContainText("MATCH!");
+    await expect(root.locator(".game-score b")).not.toHaveText("0");
     expectNoRuntimeErrors(runtimeErrors);
   });
 
   test("31 · Maze Runner moves through an open corridor", async ({ page }) => {
     const { root, runtimeErrors } = await openGame(page, 30);
-    await root.locator(".retro-pad").getByRole("button", { name: "→" }).click();
+    await expect(root.locator(".maze-board")).toBeVisible();
+    await expect(root.locator(".maze-cell")).toHaveCount(81);
+    await page.keyboard.press("ArrowRight");
     await expect(root.locator(".game-score b")).toHaveText("1");
     const runnerIndex = await root.locator(".maze-board .runner").evaluate((element) =>
       Array.from(element.parentElement!.children).indexOf(element),

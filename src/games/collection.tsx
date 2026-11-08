@@ -189,6 +189,19 @@ function Breakout({done}:{done:(s:number,w:boolean)=>void}) {
   paddleRef.current=next;
   setPaddle(next);
  };
+ useEffect(()=>{
+  const handleKeyDown=(event:KeyboardEvent)=>{
+   const key=event.key.toLowerCase();
+   const delta=key==="arrowleft"||key==="a"?-1:key==="arrowright"||key==="d"?1:0;
+   if(!delta||lostRef.current||wonRef.current)return;
+   event.preventDefault();
+   const next=Math.max(0,Math.min(9,paddleRef.current+delta));
+   paddleRef.current=next;
+   setPaddle(next);
+  };
+  window.addEventListener("keydown",handleKeyDown);
+  return()=>window.removeEventListener("keydown",handleKeyDown);
+ },[]);
  const reset=()=>{
   const nextBricks=Array.from({length:30},(_,i)=>i);
   paddleRef.current=4;
@@ -269,6 +282,19 @@ function Pong({done}:{done:(s:number,w:boolean)=>void}) {
   paddleRef.current=next;
   setPaddle(next);
  };
+ useEffect(()=>{
+  const handleKeyDown=(event:KeyboardEvent)=>{
+   const key=event.key.toLowerCase();
+   const delta=key==="arrowup"||key==="w"?-1:key==="arrowdown"||key==="s"?1:0;
+   if(!delta||finishedRef.current)return;
+   event.preventDefault();
+   const next=Math.max(1,Math.min(9,paddleRef.current+delta));
+   paddleRef.current=next;
+   setPaddle(next);
+  };
+  window.addEventListener("keydown",handleKeyDown);
+  return()=>window.removeEventListener("keydown",handleKeyDown);
+ },[]);
  const reset=()=>{
   ballRef.current=initialBall;
   paddleRef.current=5;
@@ -366,11 +392,35 @@ function TypingRush({done}:{done:(s:number,w:boolean)=>void}) {
  return <Frame title="TYPING RUSH · 30 SECONDS" score={value.length} reset={reset}><p className="typing-prompt">{text}</p><textarea className="collection-input" value={value} onChange={e=>update(e.target.value)} onPaste={e=>e.preventDefault()} disabled={!playing} placeholder="Start typing the sentence..." rows={3}/><div className="result"><b>{time}s LEFT</b><button onClick={start} disabled={playing}>{time===0?"FINISHED":"START"}</button></div></Frame>;
 }
 function NumberHunt({done}:{done:(s:number,w:boolean)=>void}) {
- const shuffleNumbers=()=>{const a=Array.from({length:25},(_,i)=>i+1);for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
- const [numbers,setNumbers]=useState(shuffleNumbers);const [next,setNext]=useState(1);const [mistakes,setMistakes]=useState(0);const [complete,setComplete]=useState(false);
- const reset=()=>{setNumbers(shuffleNumbers());setNext(1);setMistakes(0);setComplete(false);};
- const pick=(n:number)=>{if(complete)return;if(n===next){if(n===25){setComplete(true);done(Math.max(0,500-mistakes*10),true);}setNext(v=>v+1);}else setMistakes(v=>v+1);};
- return <Frame title="NUMBER HUNT · FIND 1 TO 25" score={next-1} reset={reset}><div className="number-grid">{numbers.map(n=><button key={n} className={n<next?"number-found":""} disabled={complete||n<next} onClick={()=>pick(n)}>{n}</button>)}</div><p className="collection-note">Find the numbers in ascending order. Mistakes: {mistakes}</p>{complete&&<div className="result"><b>ALL 25 FOUND · {mistakes} MISTAKES</b><button onClick={reset}>PLAY AGAIN</button></div>}</Frame>;
+ const shuffleNumbers=()=>{const values=Array.from({length:100},(_,i)=>i+1);for(let i=values.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[values[i],values[j]]=[values[j],values[i]];}return values;};
+ const [numbers,setNumbers]=useState(shuffleNumbers);
+ const [next,setNext]=useState(1);
+ const [mistakes,setMistakes]=useState(0);
+ const [complete,setComplete]=useState(false);
+ const [started,setStarted]=useState(false);
+ const [elapsed,setElapsed]=useState(0);
+ const startedAt=useRef(0);
+ useEffect(()=>{
+  if(!started||complete)return;
+  const timer=window.setInterval(()=>setElapsed(Math.floor((Date.now()-startedAt.current)/1000)),100);
+  return()=>window.clearInterval(timer);
+ },[started,complete]);
+ const formatTime=(seconds:number)=>`${Math.floor(seconds/60).toString().padStart(2,"0")}:${(seconds%60).toString().padStart(2,"0")}`;
+ const reset=()=>{setNumbers(shuffleNumbers());setNext(1);setMistakes(0);setComplete(false);setStarted(false);setElapsed(0);startedAt.current=0;};
+ const pick=(n:number)=>{
+  if(complete)return;
+  if(!started){startedAt.current=Date.now();setStarted(true);}
+  if(n===next){
+   if(n===100){const seconds=startedAt.current?Math.floor((Date.now()-startedAt.current)/1000):0;setElapsed(seconds);setComplete(true);done(Math.max(0,1000-seconds*3-mistakes*5),true);}
+   setNext(value=>value+1);
+  }else setMistakes(value=>value+1);
+ };
+ return <Frame title="NUMBER HUNT · FIND 1 TO 100" score={next-1} reset={reset}>
+  <div className="number-hunt-meta"><span>FOUND <b>{next-1}/100</b></span><span>TIME <b>{formatTime(elapsed)}</b></span><span>MISTAKES <b>{mistakes}</b></span></div>
+  <p className="collection-note">Find the numbers in ascending order. The timer starts with your first tap.</p>
+  <div className="number-grid" aria-label="Numbers from 1 to 100">{numbers.map(n=><button key={n} className={n<next?"number-found":""} disabled={complete||n<next} onClick={()=>pick(n)} aria-label={`Number ${n}`}>{n}</button>)}</div>
+  {complete&&<div className="result"><b>ALL 100 FOUND · {formatTime(elapsed)} · {mistakes} MISTAKES</b><button onClick={reset}>PLAY AGAIN</button></div>}
+ </Frame>;
 }
 function MiniSudoku({done}:{done:(s:number,w:boolean)=>void}) {
  const puzzle=[1,0,0,4,0,4,1,0,0,1,4,0,4,0,0,1];const solution=[1,2,3,4,3,4,1,2,2,1,4,3,4,3,2,1];const [values,setValues]=useState(puzzle);const [checked,setChecked]=useState(false);
