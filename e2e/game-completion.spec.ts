@@ -532,7 +532,9 @@ test("Frogger completes three safe crossings without colliding with traffic", as
   await page.clock.install();
   const { root, runtimeErrors } = await openGame(page, 28);
   for (let crossing = 0; crossing < 3; crossing += 1) {
-    await page.keyboard.press("ArrowLeft");
+    for (let step = 0; step < 4; step += 1) {
+      await page.keyboard.press("ArrowRight");
+    }
     for (let step = 0; step < 8; step += 1) {
       await page.keyboard.press("ArrowUp");
     }
