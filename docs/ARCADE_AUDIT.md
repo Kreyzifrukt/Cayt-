@@ -49,6 +49,7 @@ A source review is not a substitute for exercising the games in a browser. CI no
 - Number Hunt is played through all 25 ordered targets; the final XP, coins, wins and history entry are verified in local storage.
 - Memory is cleared through all eight matching pairs; Simon Says and Pattern Recall are completed through their final rounds using deterministic sequences and the browser clock. Reflex, Tap Blitz, Whack-a-Mole, Math Sprint and Color Clash are driven through their timed terminal states.
 - Sokoban and Maze Runner are played to completion; Blackjack resolves a full dealer stand/draw outcome; Frogger completes three safe crossings under a frozen traffic clock.
+- 15-Puzzle is solved from a deterministic 220-step legal shuffle using 20 legal moves; the final solved board and completion result are asserted.
 - Mobile emulation uses a 390×844 viewport with touch input for Frogger and Sokoban; Frogger also checks horizontal overflow.
 - The suite verifies selected full completion paths, not every possible win/loss/draw/restart scenario across all 31 games. Physical-device input and audible output remain unverified.
 

@@ -542,3 +542,33 @@ test("Frogger completes three safe crossings without colliding with traffic", as
   await expect(root.locator(".result b")).toHaveText("CROSSING COMPLETE");
   assertNoRuntimeErrors(runtimeErrors);
 });
+
+
+test("15-Puzzle is solvable from a deterministic shuffle and completes in twenty legal moves", async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
+  const { root, runtimeErrors } = await openGame(page, 23);
+  const tiles = root.locator(".fifteen-board button");
+  await expect(tiles).toHaveText([
+    "", "6", "7", "3",
+    "2", "10", "11", "4",
+    "1", "13", "15", "8",
+    "5", "9", "14", "12",
+  ]);
+
+  let blank = 0;
+  const solution = "DDDRUUULDDDRRUUURDDD";
+  for (const move of solution) {
+    const next = blank + (
+      move === "U" ? -4 :
+      move === "D" ? 4 :
+      move === "L" ? -1 : 1
+    );
+    await tiles.nth(next).click();
+    blank = next;
+  }
+
+  await expect(root.locator(".result b")).toHaveText("SOLVED IN 20 MOVES");
+  assertNoRuntimeErrors(runtimeErrors);
+});
