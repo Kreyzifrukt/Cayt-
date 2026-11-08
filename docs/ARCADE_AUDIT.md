@@ -4,11 +4,11 @@
 
 This audit covers all 31 game modules, the shared completion/reward flow, local save normalization, audio feedback, and responsive controls.
 
-A source review is not a substitute for exercising the games in a browser. CI now runs both mount smoke tests and a dedicated Playwright interaction suite that sends at least one real browser input through each of the 31 games. The suite also completes a full Number Hunt run and verifies the persisted reward record. This is a meaningful gameplay check, but it is not a full victory/loss/draw playthrough for every game and does not replace physical-device or audio verification.
+A source review is not a substitute for exercising the games in a browser. CI now runs mount checks and a dedicated Playwright interaction suite covering all 31 games. A second suite completes full win/loss paths in selected games, including five logic/puzzle games, three board games, and deterministic word/card scenarios. Number Hunt is completed end to end with its persisted reward record checked. This does not amount to a complete victory/loss/draw playthrough of every game or replace physical-device and audio verification.
 
 ## Game inventory
 
-| Game | Source-level review | Automated browser mount smoke test |
+| Game | Source-level review | Automated browser verification |
 |---|---|---|
 | Snake | Collision, food placement, terminal state reviewed; full-board completion fixed | Covered by mount and gameplay interaction tests in Playwright CI |
 | 2048 | Merge, spawn and no-move logic extracted into tested helpers; continued play after reaching 2048 restored | Covered by mount and gameplay interaction tests in Playwright CI |
@@ -44,9 +44,11 @@ A source review is not a substitute for exercising the games in a browser. CI no
 
 ## Automated browser smoke coverage
 
-- Playwright mounts all 31 game components through the real Vite development server and fails on uncaught browser runtime errors.
-- A mobile viewport smoke test opens Tetris at 390×844 and checks for horizontal page overflow.
-- These checks verify rendering and basic responsive layout only. They do not replace complete gameplay, keyboard/touch interaction, scoring, or audio playthroughs on real devices.
+- Playwright mounts all 31 game components through the Vite development server and runs at least one actual browser interaction for each game. Uncaught browser runtime errors fail the tests.
+- A separate completion suite solves Lights Out, Word Scramble, Mini Sudoku, Maze Runner and Sokoban from their rendered state; plays XO, Connect Four and Reversi to terminal positions; and verifies full win/loss paths for Hangman, Higher or Lower and Mastermind.
+- Number Hunt is played through all 25 ordered targets; the final XP, coins, wins and history entry are verified in local storage.
+- Mobile emulation uses a 390×844 viewport with touch input for Frogger and Sokoban; Frogger also checks horizontal overflow.
+- The suite verifies selected full completion paths, not every possible win/loss/draw/restart scenario across all 31 games. Physical-device input and audible output remain unverified.
 
 ## Shared systems
 
@@ -107,9 +109,9 @@ A source review is not a substitute for exercising the games in a browser. CI no
 ## Remaining work before audit sign-off
 
 1. Expand targeted unit tests for pure rules and reward edge cases across all games.
-2. Complete manual keyboard, pointer and touch playthroughs for all 31 games; the automated smoke test only verifies mounting and one mobile viewport.
-3. Verify victory, loss, draw, restart, repeated sessions, and reward accounting for each game.
+2. Complete physical desktop/mobile checks for keyboard focus, pointer/touch behavior, scrolling, touch targets and accidental page gestures; current mobile coverage is browser emulation for Frogger and Sokoban.
+3. Expand deterministic end-to-end coverage for victory, loss, draw, restart, repeated sessions and reward accounting across the remaining games; the current completion suite covers representative full paths, not all 31.
 4. Check mobile viewport sizes, touch targets, scrolling, and accidental page gestures.
-5. Review remaining design limits after the Tetris rotation and seven-piece set are exercised in a browser.
+5. Recheck Tetris on physical display sizes after the corrected 10×20 playfield, seven-piece set and controls have passed browser automation.
 6. Manually listen to the selected CC0 music loop and effects on desktop and mobile, then verify volume changes, mute, pause, reload, and browser autoplay handling.
 7. Recheck the full dependency audit before any public deployment.
