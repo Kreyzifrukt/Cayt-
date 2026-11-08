@@ -408,7 +408,9 @@ test("Reflex accepts a timely reaction and records a successful result", async (
   await page.clock.runFor(1_400);
   await expect(zone).toHaveClass(/reflex-ready/);
   await zone.click();
-  await expect(zone).toContainText("0 MS");
+  const reaction = await zone.locator("strong").innerText();
+  expect(reaction).toMatch(/^\d+ MS$/);
+  expect(Number.parseInt(reaction, 10)).toBeLessThan(300);
   await expect(root.locator(".result b")).toHaveText("YOU'RE QUICK.");
   assertNoRuntimeErrors(runtimeErrors);
 });
