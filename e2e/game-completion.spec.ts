@@ -224,6 +224,12 @@ test("Maze Runner finds its key, reaches the exit and completes the game", async
   }
   await expect(root.locator(".result b")).toHaveText("MAZE CLEARED");
   await expect(root.locator(".retro-status")).toContainText("KEY ACQUIRED");
+  await expect.poll(() => page.evaluate(() => {
+    const raw = localStorage.getItem("neon-arcade-save");
+    if (!raw) return null;
+    const save = JSON.parse(raw) as { history: { id: string; score: number }[] };
+    return save.history.find((session) => session.id === "maze-runner")?.score ?? null;
+  })).toBe(Math.max(100, 800 - path.length * 8));
   assertNoRuntimeErrors(runtimeErrors);
 });
 

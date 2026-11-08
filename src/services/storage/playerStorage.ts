@@ -65,6 +65,7 @@ export function normalizeSave(value: unknown): Save {
   const played = readCount(value.played);
   const wins = Math.min(played, readCount(value.wins));
   const draws = Math.min(Math.max(0, played - wins), readCount(value.draws));
+  const dailyRuns = Math.min(3, readCount(value.dailyRuns));
   const validSkins = ["mint", "violet", "ember", "ice"] as const;
   const unlockedSkins = Array.isArray(value.unlockedSkins)
     ? [...new Set(value.unlockedSkins.filter((skin): skin is string => typeof skin === "string" && validSkins.includes(skin as typeof validSkins[number])))]
@@ -86,8 +87,9 @@ export function normalizeSave(value: unknown): Save {
     skin: validSkins.includes(value.skin as typeof validSkins[number]) && unlockedSkins.includes(value.skin as string) ? value.skin as Save["skin"] : "mint",
     unlockedSkins,
     dailyDate: isDateKey(value.dailyDate) ? value.dailyDate : "",
-    dailyRuns: Math.min(3, readCount(value.dailyRuns)),
-    dailyClaimed: typeof value.dailyClaimed === "boolean" ? value.dailyClaimed : false,
+    dailyRuns,
+    // A daily reward can only have been claimed after the third completed run.
+    dailyClaimed: value.dailyClaimed === true && dailyRuns === 3,
   };
 }
 export function loadSave(): Save {

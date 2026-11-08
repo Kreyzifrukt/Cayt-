@@ -134,6 +134,7 @@ describe("player save normalization", () => {
     expect(save.wins).toBe(2);
     expect(save.draws).toBe(1);
     expect(save.dailyRuns).toBe(3);
+    expect(save.dailyClaimed).toBe(false);
     expect(save.profileName).toBe("PLAYER ONE");
     expect(save.gameStats.snake).toEqual({
       played: 2,
@@ -142,6 +143,12 @@ describe("player save normalization", () => {
       totalDurationSeconds: 31,
       bestScore: 70,
     });
+  });
+
+  it("only preserves a claimed daily reward when all three daily runs are complete", () => {
+    expect(normalizeSave({ dailyRuns: 2, dailyClaimed: true }).dailyClaimed).toBe(false);
+    expect(normalizeSave({ dailyRuns: 3, dailyClaimed: true }).dailyClaimed).toBe(true);
+    expect(normalizeSave({ dailyRuns: 3, dailyClaimed: false }).dailyClaimed).toBe(false);
   });
 
   it("accepts real calendar dates and rejects malformed daily date values", () => {

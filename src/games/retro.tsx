@@ -215,7 +215,7 @@ const MAZE=["#########","#   #   #","# # # # #","# #   # #","# ### # #","#   K  
 function MazeRunner({done}:{done:Done}){
   const [player,setPlayer]=useState(10),[keyFound,setKeyFound]=useState(false),[moves,setMoves]=useState(0),[ended,setEnded]=useState(false);
   const walls=new Set(MAZE.join("").split("").flatMap((v,i)=>v==="#"?[i]:[])),key=MAZE.join("").indexOf("K"),exit=MAZE.join("").indexOf("E");
-  const move=useCallback((delta:number)=>{if(ended)return;const next=player+delta;if(walls.has(next)||next<0||next>=81||(delta===1&&player%9===8)||(delta===-1&&player%9===0))return;setPlayer(next);setMoves(v=>v+1);if(next===key)setKeyFound(true);if(next===exit&&keyFound){setEnded(true);done(Math.max(100,800-moves*8),true);}},[done,ended,exit,key,keyFound,moves,player,walls]);
+  const move=useCallback((delta:number)=>{if(ended)return;const next=player+delta;if(walls.has(next)||next<0||next>=81||(delta===1&&player%9===8)||(delta===-1&&player%9===0))return;setPlayer(next);setMoves(v=>v+1);if(next===key)setKeyFound(true);if(next===exit&&keyFound){setEnded(true);done(Math.max(100,800-(moves+1)*8),true);}},[done,ended,exit,key,keyFound,moves,player,walls]);
   useEffect(()=>{const keydown=(e:KeyboardEvent)=>{const d:Record<string,number>={ArrowUp:-9,w:-9,ArrowDown:9,s:9,ArrowLeft:-1,a:-1,ArrowRight:1,d:1};if(d[e.key]!==undefined){e.preventDefault();move(d[e.key]);}};window.addEventListener("keydown",keydown);return()=>window.removeEventListener("keydown",keydown);},[move]);
   const reset=()=>{setPlayer(10);setKeyFound(false);setMoves(0);setEnded(false);};
   return <Panel title="MAZE RUNNER · FIND THE KEY" score={moves} reset={reset}>

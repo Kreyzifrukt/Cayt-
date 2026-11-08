@@ -91,6 +91,9 @@ A source review is not a substitute for exercising the games in a browser. CI no
 
 ## Follow-up fixes from the second source review
 
+- Save import now rejects an impossible daily-reward state where `dailyClaimed` is true before all three daily runs are complete; this prevents a malformed backup from suppressing the third-run reward.
+- Maze Runner completion scoring now includes the final move, matching the move counter shown in the game. The browser completion test checks the persisted score against the actual shortest path length.
+
 - Simon Says locks player input during the inter-round pause and ignores input after the expected sequence is complete.
 - 2048 keeps the session active after the 2048 milestone and records the result only when the board reaches a terminal no-moves state; the player can explicitly continue.
 - Snake, Tetris, Breakout and Pong keep simulation state in refs and perform completion/reward side effects outside React state updater callbacks. This avoids duplicate scoring when React replays updater functions and prevents overlapping timer and keyboard ticks from processing the same state.
