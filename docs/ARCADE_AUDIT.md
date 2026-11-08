@@ -47,6 +47,7 @@ A source review is not a substitute for exercising the games in a browser. CI no
 - Playwright mounts all 31 game components through the Vite development server and runs at least one actual browser interaction for each game. Uncaught browser runtime errors fail the tests.
 - A separate completion suite solves Lights Out, Word Scramble, Mini Sudoku, Maze Runner and Sokoban from their rendered state; plays XO, Connect Four and Reversi to terminal positions; and verifies full win/loss paths for Hangman, Higher or Lower and Mastermind.
 - Number Hunt is played through all 25 ordered targets; the final XP, coins, wins and history entry are verified in local storage.
+- Memory is cleared through all eight matching pairs; Simon Says and Pattern Recall are completed through their final rounds using deterministic sequences and the browser clock. Reflex, Tap Blitz, Whack-a-Mole, Math Sprint and Color Clash are driven through their timed terminal states.
 - Mobile emulation uses a 390×844 viewport with touch input for Frogger and Sokoban; Frogger also checks horizontal overflow.
 - The suite verifies selected full completion paths, not every possible win/loss/draw/restart scenario across all 31 games. Physical-device input and audible output remain unverified.
 

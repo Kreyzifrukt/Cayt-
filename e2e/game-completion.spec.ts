@@ -326,3 +326,157 @@ test("Higher or Lower can reach the ten-correct-prediction victory condition", a
   await expect(root.locator(".result b")).toHaveText("10 CORRECT GUESSES");
   assertNoRuntimeErrors(runtimeErrors);
 });
+
+
+test("Memory decodes all eight pairs with the full completion reward", async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
+  await page.clock.install();
+  const { root, runtimeErrors } = await openGame(page, 2);
+  const symbols = ["✦", "◆", "●", "▲", "✚", "⬟", "☾", "✿"];
+  const deck = [...symbols, ...symbols];
+  for (let index = deck.length - 1; index > 0; index -= 1) {
+    [deck[index], deck[0]] = [deck[0], deck[index]];
+  }
+  const pairs = new Map<string, number[]>();
+  deck.forEach((symbol, index) => {
+    pairs.set(symbol, [...(pairs.get(symbol) ?? []), index]);
+  });
+
+  for (const indexes of pairs.values()) {
+    expect(indexes).toHaveLength(2);
+    await root.locator(".memory-card").nth(indexes[0]).click();
+    await root.locator(".memory-card").nth(indexes[1]).click();
+    await page.clock.runFor(650);
+  }
+
+  await expect(root.locator(".result b")).toHaveText("MATRIX DECODED. 8 MOVES.");
+  await expect(root.locator(".memory-card.matched")).toHaveCount(16);
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Simon Says completes all 12 rounds when the visible sequence is replayed", async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
+  await page.clock.install();
+  const { root, runtimeErrors } = await openGame(page, 12);
+  await root.getByRole("button", { name: "START", exact: true }).click();
+
+  for (let round = 1; round <= 12; round += 1) {
+    await page.clock.runFor(round === 1 ? 520 : 500 + round * 520);
+    await expect(root.locator(".simon-grid button").first()).toBeEnabled();
+    for (let press = 0; press < round; press += 1) {
+      await root.locator(".simon-grid button").nth(0).click();
+    }
+  }
+
+  await expect(root.locator(".result b")).toHaveText("12 ROUNDS CLEARED");
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Pattern Recall completes all eight levels and reports the win accurately", async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
+  await page.clock.install();
+  const { root, runtimeErrors } = await openGame(page, 18);
+
+  for (let round = 1; round <= 8; round += 1) {
+    await root.getByRole("button", { name: "START ROUND", exact: true }).click();
+    const sequenceLength = round + 2;
+    await page.clock.runFor(sequenceLength * 520);
+    await expect(root.locator(".pattern-grid button").first()).toBeEnabled();
+    for (let press = 0; press < sequenceLength; press += 1) {
+      await root.locator(".pattern-grid button").nth(0).click();
+    }
+  }
+
+  await expect(root.locator(".result b")).toHaveText("8 ROUNDS CLEARED");
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Reflex accepts a timely reaction and records a successful result", async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
+  await page.clock.install();
+  const { root, runtimeErrors } = await openGame(page, 4);
+  const zone = root.locator(".reflex-zone");
+  await zone.click();
+  await page.clock.runFor(1_400);
+  await expect(zone).toHaveClass(/reflex-ready/);
+  await zone.click();
+  await expect(zone).toContainText("0 MS");
+  await expect(root.locator(".result b")).toHaveText("YOU'RE QUICK.");
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Tap Blitz ends at its 20-second deadline and awards a ten-hit run", async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
+  await page.clock.install();
+  const { root, runtimeErrors } = await openGame(page, 6);
+  await root.getByRole("button", { name: "START ROUND", exact: true }).click();
+  for (let hit = 0; hit < 10; hit += 1) {
+    await root.locator(".tap-cell.is-target").click();
+  }
+  await page.clock.runFor(20_100);
+  await expect(root.locator(".game-live")).toContainText("ROUND COMPLETE");
+  await expect(root.locator(".result b")).toHaveText("10 HITS. SOLID AIM.");
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Whack-a-Mole ends at its deadline and records a ten-hit win", async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
+  await page.clock.install();
+  const { root, runtimeErrors } = await openGame(page, 15);
+  await root.getByRole("button", { name: "START", exact: true }).click();
+  for (let hit = 0; hit < 10; hit += 1) {
+    await root.locator(".tap-cell.is-target").click();
+  }
+  await page.clock.runFor(20_100);
+  await expect(root.locator(".result b")).toHaveText("FINAL SCORE: 10");
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Math Sprint reaches its timer result after recording eight correct answers", async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
+  await page.clock.install();
+  const { root, runtimeErrors } = await openGame(page, 16);
+  await root.getByRole("button", { name: "START", exact: true }).click();
+  const input = root.locator("input.collection-input");
+  await input.fill("11");
+  await input.press("Enter");
+  for (let answer = 0; answer < 7; answer += 1) {
+    await input.fill("4");
+    await input.press("Enter");
+  }
+  await expect(root.locator(".game-score b")).toHaveText("8");
+  await page.clock.runFor(30_100);
+  await expect(root.locator(".result b")).toHaveText("0s LEFT");
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Color Clash finishes after fifteen seconds with eight correct ink choices", async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
+  await page.clock.install();
+  const { root, runtimeErrors } = await openGame(page, 17);
+  await root.getByRole("button", { name: "START ROUND", exact: true }).click();
+  await root.getByRole("button", { name: "BLUE", exact: true }).click();
+  for (let answer = 0; answer < 7; answer += 1) {
+    await root.getByRole("button", { name: "RED", exact: true }).click();
+  }
+  await expect(root.locator(".game-score b")).toHaveText("8");
+  await page.clock.runFor(15_100);
+  await expect(root.locator(".result b")).toHaveText("ROUND COMPLETE");
+  assertNoRuntimeErrors(runtimeErrors);
+});
