@@ -35,13 +35,11 @@ export default function App() {
     if(!save.musicEnabled){stopArcadeMusic();return;}
     let disposed=false;
     const startAfterGesture=()=>{
-      void startArcadeMusic(musicVolumeRef.current).then(playing=>{
-        if(!playing||disposed)return;
-        document.removeEventListener("pointerdown",startAfterGesture);
-        document.removeEventListener("keydown",startAfterGesture);
-      });
+      // Keep the listeners for the entire enabled period. If media fails after
+      // playback starts, a later gesture can reload the element and retry it.
+      void startArcadeMusic(musicVolumeRef.current);
     };
-    // Attempt autoplay once, then keep retrying on user gestures until playback succeeds.
+    // Attempt autoplay once, then retry after autoplay or later media errors.
     startAfterGesture();
     document.addEventListener("pointerdown",startAfterGesture);
     document.addEventListener("keydown",startAfterGesture);
