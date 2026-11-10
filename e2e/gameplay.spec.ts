@@ -308,8 +308,13 @@ test.describe("gameplay input checks", () => {
 
   test("25 · Sokoban renders interior walls and responds to a valid direction", async ({ page }) => {
     const { root, runtimeErrors } = await openGame(page, 24);
-    await expect(root.locator(".sokoban-cell.wall").filter({ has: root.locator(".player") })).toHaveCount(0);
-    expect(await root.locator(".sokoban-cell.wall").count()).toBeGreaterThan(4);
+    const interiorWallCount = await root.locator(".sokoban-board").evaluate((board) =>
+      Array.from(board.children).filter((cell, index) => {
+        const row = Math.floor(index / 8), column = index % 8;
+        return row > 0 && row < 7 && column > 0 && column < 7 && cell.classList.contains("wall");
+      }).length,
+    );
+    expect(interiorWallCount).toBeGreaterThanOrEqual(3);
     const direction = await root.locator(".sokoban-board").evaluate((board) => {
       const cells = Array.from(board.children) as HTMLElement[];
       const player = cells.findIndex((cell) => cell.classList.contains("player"));
@@ -447,8 +452,13 @@ test.describe("mobile touch controls", () => {
 
   test("mobile Sokoban touch control works with interior walls", async ({ page }) => {
     const { root, runtimeErrors } = await openGame(page, 24);
-    await expect(root.locator(".sokoban-cell.wall").filter({ has: root.locator(".player") })).toHaveCount(0);
-    expect(await root.locator(".sokoban-cell.wall").count()).toBeGreaterThan(4);
+    const interiorWallCount = await root.locator(".sokoban-board").evaluate((board) =>
+      Array.from(board.children).filter((cell, index) => {
+        const row = Math.floor(index / 8), column = index % 8;
+        return row > 0 && row < 7 && column > 0 && column < 7 && cell.classList.contains("wall");
+      }).length,
+    );
+    expect(interiorWallCount).toBeGreaterThanOrEqual(3);
     const direction = await root.locator(".sokoban-board").evaluate((board) => {
       const cells = Array.from(board.children) as HTMLElement[];
       const player = cells.findIndex((cell) => cell.classList.contains("player"));
