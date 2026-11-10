@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { RotateCcw } from "lucide-react";
+import { isBeforeDeadline } from "./gameUtils";
 import type { GameId } from "../types/game";
 
 type Props = {
   id: Extract<GameId, "lights-out" | "tap-blitz" | "word-scramble">;
-  onFinish: (id: GameId, score: number, won: boolean) => void;
+  onFinish: (id: GameId, score: number, won: boolean, draw?: boolean) => void;
 };
 
 function Toolbar({ label, value }: { label: string; value: string | number }) {
@@ -141,7 +142,7 @@ function TapBlitz({ onFinish }: Pick<Props, "onFinish">) {
   };
 
   const hit = (index: number) => {
-    if (phase !== "playing" || index !== target) return;
+    if (phase !== "playing" || index !== target || !isBeforeDeadline(Date.now(), startAt.current + 20_000)) return;
     const next = scoreRef.current + 1;
     scoreRef.current = next;
     setScore(next);

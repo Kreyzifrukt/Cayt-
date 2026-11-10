@@ -43,7 +43,8 @@ export function PlayerStats({ save, level }: Props) {
   const tracked = Object.values(save.gameStats).reduce((total, value) => total + (value?.played || 0), 0);
   const trackedSeconds = Object.values(save.gameStats).reduce((total, value) => total + (value?.totalDurationSeconds || 0), 0);
   const averageSeconds = tracked ? Math.round(trackedSeconds / tracked) : 0;
-  const winRate = save.played ? Math.round(save.wins / save.played * 100) : 0;
+  const decisiveRuns=save.played-save.draws;
+  const winRate = decisiveRuns ? Math.round(save.wins / decisiveRuns * 100) : 0;
   const weekly = bestSession(save.history.filter(session => isWithinWeek(session.playedAt, now)));
   const monthly = bestSession(save.history.filter(session => isWithinMonth(session.playedAt, now)));
   const popular = games
@@ -90,6 +91,7 @@ export function PlayerStats({ save, level }: Props) {
     <div className="stats-grid profile-metrics">
       <Stat icon={<Gamepad2/>} label={tr("totalRuns")} value={save.played}/>
       <Stat icon={<Trophy/>} label={tr("victories")} value={save.wins}/>
+      <Stat icon={<Shield/>} label={tr("draws")} value={save.draws}/>
       <Stat icon={<TrendingUp/>} label={tr("winRate")} value={winRate + "%"}/>
       <Stat icon={<Clock3/>} label={tr("averageTime")} value={formatDuration(averageSeconds, language)}/>
     </div>
@@ -109,7 +111,8 @@ export function PlayerStats({ save, level }: Props) {
       {gameRows.map(game => {
         const data = save.gameStats[game.id];
         const count = data?.played || 0;
-        const rate = count ? Math.round((data?.wins || 0) / count * 100) : 0;
+        const decisive = count - (data?.draws || 0);
+        const rate = decisive ? Math.round((data?.wins || 0) / decisive * 100) : 0;
         const average = count ? Math.round((data?.totalDurationSeconds || 0) / count) : 0;
         return <div className="profile-game-row" key={game.id}>
           <div className="profile-game-name"><span className={"record-icon " + game.color}><game.icon/></span><b>{gameCopy(game.id, language).title}</b></div>
@@ -125,16 +128,16 @@ export function PlayerStats({ save, level }: Props) {
     <div className="profile-section-heading recent-heading"><div><div className="eyebrow">{tr("recordedHistory")}</div><h2>{tr("recentSessions")}</h2></div></div>
     {save.history.length ? <div className="session-history">
       {save.history.slice(0, 12).map((session, index) => <article className="session-row" key={session.playedAt + "-" + index}>
-        <div className={"session-result-dot " + (session.won ? "won" : "lost")}>{session.won ? "✓" : "·"}</div>
+        <div className={"session-result-dot " + (session.draw ? "draw" : session.won ? "won" : "lost")}>{session.draw ? "=" : session.won ? "✓" : "·"}</div>
         <div className="session-game"><b>{gameCopy(session.id, language).title}</b><small>{dateFormatter.format(new Date(session.playedAt))}</small></div>
         <strong>{session.score.toLocaleString()} <small>{tr("scoreLabel")}</small></strong>
         <span>{formatDuration(session.durationSeconds, language)}</span>
-        <em className={session.won ? "session-won" : "session-lost"}>{session.won ? tr("win") : tr("loss")}</em>
+        <em className={session.draw ? "session-draw" : session.won ? "session-won" : "session-lost"}>{session.draw ? tr("draw") : session.won ? tr("win") : tr("loss")}</em>
       </article>)}
     </div> : <div className="profile-empty"><Gamepad2/><b>{tr("noSessions")}</b></div>}
 
     <h2 className="section-title">{tr("achievements")} <small>/ {achievements.filter(item => item.unlocked).length} OF {achievements.length} UNLOCKED</small></h2>
-    <div className="achievement-grid">{achievements.map(item => <div className={item.unlocked ? "achievement unlocked" : "achievement"} key={item.name}><span>{item.icon}</span><div><b>{item.name}</b><small>{item.description}</small></div><strong>{item.unlocked ? tr("unlockedStatus") : tr("locked")}</strong></div>)}</div>
+    <div className="achievement-grid">{achievements.map(item => <div className={item.unlocked ? "achievement unlocked" : "achievement"} key={item.name + (item.unlocked ? "-unlocked" : "-locked")}><span>{item.icon}</span><div><b>{item.name}</b><small>{item.description}</small></div><strong>{item.unlocked ? tr("unlockedStatus") : tr("locked")}</strong></div>)}</div>
     <p className="privacy"><Shield/> {tr("privacy")}</p>
   </section>;
 }

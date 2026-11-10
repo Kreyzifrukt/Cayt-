@@ -1,0 +1,585 @@
+import { expect, test, type Page } from "@playwright/test";
+
+async function openGame(page: Page, index: number) {
+  const runtimeErrors: string[] = [];
+  page.on("pageerror", (error) => runtimeErrors.push(error.message));
+  await page.goto("/");
+  const menuButton = page.locator(".menu-button");
+  if (await menuButton.isVisible()) await menuButton.click();
+  const games = page.locator(".sidebar-games button.nav");
+  await expect(games).toHaveCount(31);
+  await games.nth(index).click();
+  const root = page.locator(".playfield");
+  await expect(root.locator(".engine")).toBeVisible();
+  return { root, runtimeErrors };
+}
+
+function assertNoRuntimeErrors(errors: string[]) {
+  expect(errors, "uncaught browser runtime errors").toEqual([]);
+}
+
+function solveLightsOut(initial: boolean[]): number[] {
+  const rows = Array.from({ length: 25 }, (_, cell) => {
+    const row = Math.floor(cell / 5);
+    const column = cell % 5;
+    const effects = Array.from({ length: 25 }, (_, press) => {
+      const pressRow = Math.floor(press / 5);
+      const pressColumn = press % 5;
+      return Math.abs(row - pressRow) + Math.abs(column - pressColumn) <= 1 ? 1 : 0;
+    });
+    return [...effects, initial[cell] ? 1 : 0];
+  });
+
+  let pivotRow = 0;
+  const pivotColumns: number[] = [];
+  for (let column = 0; column < 25; column += 1) {
+    const candidate = rows.findIndex((row, index) => index >= pivotRow && row[column] === 1);
+    if (candidate < 0) continue;
+    [rows[pivotRow], rows[candidate]] = [rows[candidate], rows[pivotRow]];
+    for (let row = 0; row < 25; row += 1) {
+      if (row === pivotRow || rows[row][column] === 0) continue;
+      for (let cell = column; cell <= 25; cell += 1) {
+        rows[row][cell] ^= rows[pivotRow][cell];
+      }
+    }
+    pivotColumns.push(column);
+    pivotRow += 1;
+  }
+
+  for (const row of rows) {
+    if (row.slice(0, 25).every((value) => value === 0) && row[25] === 1) {
+      throw new Error("The displayed Lights Out board has no solution.");
+    }
+  }
+
+  const solution = Array(25).fill(0) as number[];
+  pivotColumns.forEach((column, row) => {
+    solution[column] = rows[row][25];
+  });
+  return solution.flatMap((pressed, index) => (pressed ? [index] : []));
+}
+
+async function solveMaze(root: ReturnType<Page["locator"]>): Promise<string[]> {
+  return root.locator(".maze-board").evaluate((board) => {
+    const cells = Array.from(board.children) as HTMLElement[];
+    const start = cells.findIndex((cell) => cell.classList.contains("runner"));
+    const key = cells.findIndex((cell) => cell.classList.contains("key-cell"));
+    const exit = cells.findIndex((cell) => cell.classList.contains("exit-cell"));
+    const directions = [
+      { delta: -9, key: "ArrowUp" },
+      { delta: 9, key: "ArrowDown" },
+      { delta: -1, key: "ArrowLeft" },
+      { delta: 1, key: "ArrowRight" },
+    ];
+
+    const shortestPath = (from: number, to: number): string[] => {
+      const queue = [from];
+      const previous = new Map<number, { parent: number; key: string }>();
+      previous.set(from, { parent: -1, key: "" });
+      for (let cursor = 0; cursor < queue.length && !previous.has(to); cursor += 1) {
+        const current = queue[cursor];
+        for (const direction of directions) {
+          const next = current + direction.delta;
+          if (next < 0 || next >= cells.length) continue;
+          if (direction.delta === -1 && current % 9 === 0) continue;
+          if (direction.delta === 1 && current % 9 === 8) continue;
+          if (cells[next].classList.contains("wall") || previous.has(next)) continue;
+          previous.set(next, { parent: current, key: direction.key });
+          queue.push(next);
+        }
+      }
+      if (!previous.has(to)) throw new Error("Maze target is unreachable.");
+      const path: string[] = [];
+      let position = to;
+      while (position !== from) {
+        const step = previous.get(position)!;
+        path.push(step.key);
+        position = step.parent;
+      }
+      return path.reverse();
+    };
+
+    return [...shortestPath(start, key), ...shortestPath(key, exit)];
+  });
+}
+
+async function solveSokoban(root: ReturnType<Page["locator"]>): Promise<string[]> {
+  return root.locator(".sokoban-board").evaluate((board) => {
+    const cells = Array.from(board.children) as HTMLElement[];
+    const walls = new Set(cells.flatMap((cell, index) => cell.classList.contains("wall") ? [index] : []));
+    const goals = new Set(cells.flatMap((cell, index) => cell.classList.contains("goal") ? [index] : []));
+    const boxes = cells.flatMap((cell, index) => cell.classList.contains("box") ? [index] : []);
+    const player = cells.findIndex((cell) => cell.classList.contains("player"));
+    const directions = [
+      { delta: -8, key: "ArrowUp" },
+      { delta: 8, key: "ArrowDown" },
+      { delta: -1, key: "ArrowLeft" },
+      { delta: 1, key: "ArrowRight" },
+    ];
+    const encode = (position: number, crates: number[]) => position + "|" + crates.join(",");
+    const initial = { position: player, crates: boxes.sort((a, b) => a - b), path: [] as string[] };
+    const queue = [initial];
+    const visited = new Set([encode(initial.position, initial.crates)]);
+
+    for (let cursor = 0; cursor < queue.length; cursor += 1) {
+      const state = queue[cursor];
+      if (state.crates.every((crate) => goals.has(crate))) return state.path;
+
+      for (const direction of directions) {
+        const next = state.position + direction.delta;
+        if (next < 0 || next >= cells.length) continue;
+        if (direction.delta === -1 && state.position % 8 === 0) continue;
+        if (direction.delta === 1 && state.position % 8 === 7) continue;
+        if (walls.has(next)) continue;
+
+        let crates = state.crates;
+        const boxIndex = crates.indexOf(next);
+        if (boxIndex >= 0) {
+          const beyond = next + direction.delta;
+          if (beyond < 0 || beyond >= cells.length || walls.has(beyond) || crates.includes(beyond)) continue;
+          crates = [...crates];
+          crates[boxIndex] = beyond;
+          crates.sort((a, b) => a - b);
+        }
+
+        const key = encode(next, crates);
+        if (visited.has(key)) continue;
+        visited.add(key);
+        queue.push({ position: next, crates, path: [...state.path, direction.key] });
+      }
+    }
+    throw new Error("The current Sokoban level has no solution.");
+  });
+}
+
+test("Lights Out can be solved from the rendered board and records the win", async ({ page }) => {
+  const { root, runtimeErrors } = await openGame(page, 5);
+  const state = await root.locator(".light-cell").evaluateAll((cells) =>
+    cells.map((cell) => cell.getAttribute("aria-pressed") === "true"),
+  );
+  const solution = solveLightsOut(state);
+  expect(solution.length).toBeGreaterThan(0);
+  for (const index of solution) {
+    await root.locator(".light-cell").nth(index).click();
+  }
+  await expect(root.locator(".result b")).toHaveText("ALL LIGHTS OUT. CLEAN WORK.");
+  await expect.poll(() => page.evaluate(() => {
+    const raw = localStorage.getItem("neon-arcade-save");
+    return raw ? (JSON.parse(raw) as { wins: number }).wins : 0;
+  })).toBe(1);
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Word Scramble completes all five words using the displayed letter tiles", async ({ page }) => {
+  const { root, runtimeErrors } = await openGame(page, 7);
+  const words = ["PLANET", "PUZZLE", "GALAXY", "ROCKET", "ARCADE"];
+
+  for (const word of words) {
+    const tiles = root.locator(".letter-tile");
+    const letters = (await tiles.allTextContents()).map((letter) => letter.trim());
+    const used = new Set<number>();
+    for (const letter of word) {
+      const index = letters.findIndex((candidate, position) => candidate === letter && !used.has(position));
+      expect(index, "every target letter must be present in the letter bank").toBeGreaterThanOrEqual(0);
+      used.add(index);
+      await tiles.nth(index).click();
+    }
+    await root.getByRole("button", { name: "CHECK WORD", exact: true }).click();
+  }
+
+  await expect(root.locator(".result b")).toHaveText("FIVE FOR FIVE. WORDSMITH STATUS.");
+  await expect.poll(() => page.evaluate(() => {
+    const raw = localStorage.getItem("neon-arcade-save");
+    return raw ? (JSON.parse(raw) as { wins: number }).wins : 0;
+  })).toBe(1);
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Mini Sudoku validates a complete correct 4×4 solution and records the result", async ({ page }) => {
+  const { root, runtimeErrors } = await openGame(page, 22);
+  const solution = [1, 2, 3, 4, 3, 4, 1, 2, 2, 1, 4, 3, 4, 3, 2, 1];
+  const editableIndexes = [1, 2, 4, 7, 8, 11, 13, 14];
+  const selects = root.locator(".sudoku-grid select");
+
+  for (let index = 0; index < editableIndexes.length; index += 1) {
+    await selects.nth(index).selectOption(String(solution[editableIndexes[index]]));
+  }
+
+  await root.getByRole("button", { name: "CHECK SOLUTION" }).click();
+  await expect(root.locator(".result b")).toHaveText("CHECK COMPLETE");
+  await expect.poll(() => page.evaluate(() => {
+    const raw = localStorage.getItem("neon-arcade-save");
+    if (!raw) return 0;
+    return (JSON.parse(raw) as { wins: number }).wins;
+  })).toBe(1);
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Maze Runner finds its key, reaches the exit and completes the game", async ({ page }) => {
+  const { root, runtimeErrors } = await openGame(page, 30);
+  await expect(root.locator(".maze-board")).toBeVisible();
+  await expect(root.locator(".maze-cell")).toHaveCount(81);
+  const path = await solveMaze(root);
+  expect(path.length).toBeGreaterThan(0);
+  for (const key of path) {
+    await page.keyboard.press(key);
+  }
+  await expect(root.locator(".result b")).toHaveText("MAZE CLEARED");
+  await expect(root.locator(".retro-status")).toContainText("KEY ACQUIRED");
+  await expect.poll(() => page.evaluate(() => {
+    const raw = localStorage.getItem("neon-arcade-save");
+    if (!raw) return null;
+    const save = JSON.parse(raw) as { history: { id: string; score: number }[] };
+    return save.history.find((session) => session.id === "maze-runner")?.score ?? null;
+  })).toBe(Math.max(100, 800 - path.length * 8));
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Sokoban generates multiple solvable levels", async ({ page }) => {
+  const { root, runtimeErrors } = await openGame(page, 24);
+  for (let level = 1; level <= 5; level += 1) {
+    await expect(root.locator(".sokoban-board > .sokoban-cell")).toHaveCount(64);
+    const path = await solveSokoban(root);
+    expect(path.length, `level ${level} should have a solution`).toBeGreaterThan(0);
+    for (const key of path) {
+      await page.keyboard.press(key);
+    }
+    await expect(root.locator(".result b")).toHaveText("LEVEL CLEARED · NEW LEVEL READY");
+    if (level < 5) {
+      await root.getByRole("button", { name: "NEXT LEVEL" }).click();
+    }
+  }
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("XO reaches a valid terminal state against the CPU", async ({ page }) => {
+  const { root, runtimeErrors } = await openGame(page, 3);
+  for (let turn = 0; turn < 9 && !(await root.locator(".result").count()); turn += 1) {
+    const move = root.locator(".xo-cell:not(:disabled)").first();
+    if (!(await move.count())) break;
+    await move.click();
+  }
+  await expect(root.locator(".result")).toBeVisible();
+  const result = (await root.locator(".result b").innerText()).trim();
+  expect(["NICE MOVES. VICTORY.", "A PERFECT STALEMATE.", "THE CPU GOT YOU."]).toContain(result);
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Connect Four reaches a terminal win or draw without accepting a full column", async ({ page }) => {
+  const { root, runtimeErrors } = await openGame(page, 14);
+  for (let move = 0; move < 42 && !(await root.locator(".result").count()); move += 1) {
+    const column = await root.locator(".connect-grid").evaluate((grid) => {
+      for (let index = 0; index < 7; index += 1) {
+        const cell = grid.children[7 + index] as HTMLElement;
+        if (!cell.classList.contains("red") && !cell.classList.contains("yellow")) return index;
+      }
+      return -1;
+    });
+    if (column < 0) break;
+    await root.locator(".drop-column").nth(column).click();
+  }
+  await expect(root.locator(".result")).toBeVisible();
+  await expect(root.locator(".result b")).toHaveText(/YOU WIN|CPU WINS|DRAW/);
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Reversi runs to a terminal board state through consecutive legal moves", async ({ page }) => {
+  const { root, runtimeErrors } = await openGame(page, 25);
+  for (let move = 0; move < 60 && !(await root.locator(".result").count()); move += 1) {
+    const legal = root.locator(".reversi-cell:not(:disabled)");
+    if (!(await legal.count())) break;
+    await legal.first().click();
+  }
+  await expect(root.locator(".result")).toBeVisible();
+  await expect(root.locator(".result b")).toHaveText(/YOU WIN|DRAW|CPU WINS/);
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Hangman wins when all letters in the hidden word are guessed", async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
+  const { root, runtimeErrors } = await openGame(page, 13);
+  for (const letter of ["O", "R", "B", "I", "T"]) {
+    await root.getByRole("button", { name: letter, exact: true }).click();
+  }
+  await expect(root.locator(".result b")).toHaveText("WORD SAVED");
+  await expect.poll(() => page.evaluate(() => {
+    const raw = localStorage.getItem("neon-arcade-save");
+    return raw ? (JSON.parse(raw) as { wins: number }).wins : 0;
+  })).toBe(1);
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Mastermind completes the eight-attempt loss path and locks input", async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
+  const { root, runtimeErrors } = await openGame(page, 26);
+  const submit = root.getByRole("button", { name: "SUBMIT GUESS", exact: true });
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    await submit.click();
+  }
+  await expect(root.locator(".master-history > div")).toHaveCount(8);
+  await expect(submit).toBeDisabled();
+  await expect(root.locator(".result b")).toHaveText("CODE: 1 · 1 · 1 · 1");
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Higher or Lower can reach the ten-correct-prediction victory condition", async ({ page }) => {
+  await page.addInitScript(() => {
+    const values = [0.999, 0, 0.999, 0, 0.999, 0, 0.999, 0, 0.999, 0];
+    let index = 0;
+    Math.random = () => values[index++ % values.length];
+  });
+  const { root, runtimeErrors } = await openGame(page, 19);
+  const guesses = ["HIGHER", "LOWER", "HIGHER", "LOWER", "HIGHER", "LOWER", "HIGHER", "LOWER", "HIGHER", "LOWER"];
+  for (const guess of guesses) {
+    await root.getByRole("button", { name: guess, exact: true }).click();
+  }
+  await expect(root.locator(".result b")).toHaveText("10 CORRECT GUESSES");
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+
+test("Memory decodes all eight pairs with the full completion reward", async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
+  await page.clock.install();
+  const { root, runtimeErrors } = await openGame(page, 2);
+  const symbols = ["✦", "◆", "●", "▲", "✚", "⬟", "☾", "✿"];
+  const deck = [...symbols, ...symbols];
+  for (let index = deck.length - 1; index > 0; index -= 1) {
+    [deck[index], deck[0]] = [deck[0], deck[index]];
+  }
+  const pairs = new Map<string, number[]>();
+  deck.forEach((symbol, index) => {
+    pairs.set(symbol, [...(pairs.get(symbol) ?? []), index]);
+  });
+
+  for (const indexes of pairs.values()) {
+    expect(indexes).toHaveLength(2);
+    await root.locator(".memory-card").nth(indexes[0]).click();
+    await root.locator(".memory-card").nth(indexes[1]).click();
+    await page.clock.runFor(650);
+  }
+
+  await expect(root.locator(".result b")).toHaveText("MATRIX DECODED. 8 MOVES.");
+  await expect(root.locator(".memory-card.matched")).toHaveCount(16);
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Simon Says completes all 12 rounds when the visible sequence is replayed", async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
+  await page.clock.install();
+  const { root, runtimeErrors } = await openGame(page, 12);
+  await root.getByRole("button", { name: "START", exact: true }).click();
+
+  for (let round = 1; round <= 12; round += 1) {
+    await page.clock.runFor(round === 1 ? 520 : 500 + round * 520);
+    await expect(root.locator(".simon-grid button").first()).toBeEnabled();
+    for (let press = 0; press < round; press += 1) {
+      await root.locator(".simon-grid button").nth(0).click();
+    }
+  }
+
+  await expect(root.locator(".result b")).toHaveText("12 ROUNDS CLEARED");
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Pattern Recall completes all eight levels and reports the win accurately", async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
+  await page.clock.install();
+  const { root, runtimeErrors } = await openGame(page, 18);
+
+  for (let round = 1; round <= 8; round += 1) {
+    await root.getByRole("button", { name: "START ROUND", exact: true }).click();
+    const sequenceLength = round + 2;
+    await page.clock.runFor(sequenceLength * 520);
+    await expect(root.locator(".pattern-grid button").first()).toBeEnabled();
+    for (let press = 0; press < sequenceLength; press += 1) {
+      await root.locator(".pattern-grid button").nth(0).click();
+    }
+  }
+
+  await expect(root.locator(".result b")).toHaveText("8 ROUNDS CLEARED");
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Reflex accepts a timely reaction and records a successful result", async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
+  await page.clock.install();
+  const { root, runtimeErrors } = await openGame(page, 4);
+  const zone = root.locator(".reflex-zone");
+  await zone.click();
+  await page.clock.runFor(1_400);
+  await expect(zone).toHaveClass(/reflex-ready/);
+  await zone.click();
+  const reaction = await zone.locator("strong").innerText();
+  expect(reaction).toMatch(/^\d+ MS$/);
+  expect(Number.parseInt(reaction, 10)).toBeLessThan(300);
+  await expect(root.locator(".result b")).toHaveText("YOU'RE QUICK.");
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Tap Blitz ends at its 20-second deadline and awards a ten-hit run", async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
+  await page.clock.install();
+  const { root, runtimeErrors } = await openGame(page, 6);
+  await root.getByRole("button", { name: "START ROUND", exact: true }).click();
+  for (let hit = 0; hit < 10; hit += 1) {
+    await root.locator(".tap-cell.is-target").click();
+  }
+  await page.clock.runFor(20_100);
+  await expect(root.locator(".game-live")).toContainText("ROUND COMPLETE");
+  await expect(root.locator(".result b")).toHaveText("10 HITS. SOLID AIM.");
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Whack-a-Mole ends at its deadline and records a ten-hit win", async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
+  await page.clock.install();
+  const { root, runtimeErrors } = await openGame(page, 15);
+  await root.getByRole("button", { name: "START", exact: true }).click();
+  for (let hit = 0; hit < 10; hit += 1) {
+    await root.locator(".tap-cell.is-target").click();
+  }
+  await page.clock.runFor(20_100);
+  await expect(root.locator(".result b")).toHaveText("FINAL SCORE: 10");
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Math Sprint reaches its timer result after recording eight correct answers", async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
+  await page.clock.install();
+  const { root, runtimeErrors } = await openGame(page, 16);
+  await root.getByRole("button", { name: "START", exact: true }).click();
+  const input = root.locator("input.collection-input");
+  await input.fill("11");
+  await input.press("Enter");
+  for (let answer = 0; answer < 7; answer += 1) {
+    await input.fill("4");
+    await input.press("Enter");
+  }
+  await expect(root.locator(".game-score b")).toHaveText("8");
+  await page.clock.runFor(30_100);
+  await expect(root.locator(".result b")).toHaveText("0s LEFT");
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Color Clash finishes after fifteen seconds with eight correct ink choices", async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
+  await page.clock.install();
+  const { root, runtimeErrors } = await openGame(page, 17);
+  await root.getByRole("button", { name: "START ROUND", exact: true }).click();
+  await root.getByRole("button", { name: "BLUE", exact: true }).click();
+  for (let answer = 0; answer < 7; answer += 1) {
+    await root.getByRole("button", { name: "RED", exact: true }).click();
+  }
+  await expect(root.locator(".game-score b")).toHaveText("8");
+  await page.clock.runFor(15_100);
+  await expect(root.locator(".result b")).toHaveText("ROUND COMPLETE");
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+
+test("Sokoban solves a generated three-crate level through keyboard controls", async ({ page }) => {
+  const { root, runtimeErrors } = await openGame(page, 24);
+  const solution = await solveSokoban(root);
+  expect(solution.length).toBeGreaterThan(0);
+  for (const key of solution) {
+    await page.keyboard.press(key);
+  }
+  await expect(root.locator(".result b")).toHaveText("LEVEL CLEARED · NEW LEVEL READY");
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Maze Runner collects the key before reaching the exit", async ({ page }) => {
+  const { root, runtimeErrors } = await openGame(page, 30);
+  const solution = "DDDDRRRRDDRR";
+  for (const move of solution) {
+    await page.keyboard.press(
+      move === "U" ? "ArrowUp" :
+      move === "D" ? "ArrowDown" :
+      move === "L" ? "ArrowLeft" : "ArrowRight",
+    );
+  }
+  await expect(root.locator(".result b")).toHaveText("MAZE CLEARED");
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Blackjack resolves a stand, dealer draw and player win", async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
+  const { root, runtimeErrors } = await openGame(page, 27);
+  await root.getByRole("button", { name: "DEAL", exact: true }).click();
+  await expect(root.locator(".blackjack-table")).toContainText("YOU · 5");
+  await root.getByRole("button", { name: "STAND", exact: true }).click();
+  await expect(root.locator(".retro-status")).toHaveText("YOU WIN");
+  await expect(root.locator(".result b")).toHaveText("YOU WIN");
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+test("Frogger completes three safe crossings without colliding with traffic", async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
+  await page.clock.install();
+  const { root, runtimeErrors } = await openGame(page, 28);
+  for (let crossing = 0; crossing < 3; crossing += 1) {
+    for (let step = 0; step < 4; step += 1) {
+      await page.keyboard.press("ArrowRight");
+    }
+    for (let step = 0; step < 8; step += 1) {
+      await page.keyboard.press("ArrowUp");
+    }
+  }
+  await expect(root.locator(".result b")).toHaveText("CROSSING COMPLETE");
+  assertNoRuntimeErrors(runtimeErrors);
+});
+
+
+test("15-Puzzle is solvable from a deterministic shuffle and completes in twenty legal moves", async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
+  const { root, runtimeErrors } = await openGame(page, 23);
+  const tiles = root.locator(".fifteen-board button");
+  await expect(tiles).toHaveText([
+    "", "6", "7", "3",
+    "2", "10", "11", "4",
+    "1", "13", "15", "8",
+    "5", "9", "14", "12",
+  ]);
+
+  let blank = 0;
+  const solution = "DDDRUUULDDDRRUUURDDD";
+  for (const move of solution) {
+    const next = blank + (
+      move === "U" ? -4 :
+      move === "D" ? 4 :
+      move === "L" ? -1 : 1
+    );
+    await tiles.nth(next).click();
+    blank = next;
+  }
+
+  await expect(root.locator(".result b")).toHaveText("SOLVED IN 20 MOVES");
+  assertNoRuntimeErrors(runtimeErrors);
+});

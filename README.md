@@ -52,7 +52,7 @@ A responsive, local-first arcade hub built with React, TypeScript and Vite. **31
 
 ## Development
 
-Requires Node.js 20.19+ or 22.12+.
+Requires Node.js 22.12+ (or Node.js 24+). This matches the current Vitest 5 toolchain.
 
 ```bash
 npm install
@@ -60,6 +60,7 @@ npm run dev
 npm run typecheck
 npm test
 npm run build
+npm run test:e2e
 ```
 
 All progress is stored in localStorage under `neon-arcade-save`. Clearing browser site data resets the local profile. Online leaderboards and cloud synchronization are intentionally not represented as available: they require a hosted backend, user accounts and server-side score validation.
