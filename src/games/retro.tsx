@@ -53,11 +53,14 @@ function Sokoban({ done }: { done: Done }) {
   const [moves, setMoves] = useState(0);
   const [levelNumber, setLevelNumber] = useState(1);
   const [won, setWon] = useState(false);
-  const walls = useMemo(() => new Set(Array.from({ length: 64 }, (_, index) => {
-    const row = Math.floor(index / SOKOBAN_SIZE);
-    const column = index % SOKOBAN_SIZE;
-    return row === 0 || row === 7 || column === 0 || column === 7 ? index : -1;
-  }).filter((index) => index >= 0)), []);
+  const walls = useMemo(() => new Set([
+    ...level.walls,
+    ...Array.from({ length: 64 }, (_, index) => {
+      const row = Math.floor(index / SOKOBAN_SIZE);
+      const column = index % SOKOBAN_SIZE;
+      return row === 0 || row === 7 || column === 0 || column === 7 ? index : -1;
+    }).filter((index) => index >= 0),
+  ]), [level]);
   const goals = useMemo(() => new Set(level.goals), [level]);
   const move = useCallback((delta: number) => {
     if (won) return;
@@ -102,7 +105,7 @@ function Sokoban({ done }: { done: Done }) {
     setMoves(0); setWon(false); setLevelNumber((value) => value + 1);
   };
   return <Panel title={`SOKOBAN · LEVEL ${levelNumber}`} score={moves} reset={reset}>
-    <p className="retro-note">Push all three crates onto the glowing goals. Each new level is generated with a guaranteed push route. Use arrows or WASD.</p>
+    <p className="retro-note">Push all three crates onto the glowing goals. Stone walls block movement, and every generated level is checked for a solution. Use arrows or WASD.</p>
     <div className="sokoban-board" role="grid" aria-label="Sokoban level">
       {Array.from({ length: 64 }, (_, index) => {
         const box = boxes.includes(index), goal = goals.has(index);

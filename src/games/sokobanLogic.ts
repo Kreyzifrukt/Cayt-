@@ -2,6 +2,7 @@ export type SokobanLevel = {
   player: number;
   boxes: number[];
   goals: number[];
+  walls: number[];
 };
 
 export const SOKOBAN_SIZE = 8;
@@ -12,6 +13,7 @@ export const SOKOBAN_FALLBACK_LEVEL: SokobanLevel = {
   player: 51,
   boxes: [19, 35, 45],
   goals: [11, 34, 37],
+  walls: [9, 14, 49, 54],
 };
 
 function shufflePositions<T>(values: T[], random: () => number): T[] {
@@ -30,12 +32,12 @@ function isInterior(cell: number): boolean {
     column >= 1 && column < SOKOBAN_SIZE - 1;
 }
 
-function isWall(cell: number): boolean {
+function isWall(cell: number, walls: Set<number> = new Set()): boolean {
   const row = Math.floor(cell / SOKOBAN_SIZE);
   const column = cell % SOKOBAN_SIZE;
   return cell < 0 || cell >= SOKOBAN_SIZE * SOKOBAN_SIZE ||
     row === 0 || row === SOKOBAN_SIZE - 1 ||
-    column === 0 || column === SOKOBAN_SIZE - 1;
+    column === 0 || column === SOKOBAN_SIZE - 1 || walls.has(cell);
 }
 
 /**
@@ -43,14 +45,18 @@ function isWall(cell: number): boolean {
  * have straight push lanes but cannot be reached from the player's spawn.
  */
 export function isSokobanLevelSolvable(level: SokobanLevel): boolean {
+  const walls = new Set(level.walls ?? []);
   if (
     !isInterior(level.player) ||
     level.boxes.length === 0 ||
     level.boxes.length !== level.goals.length ||
     new Set(level.boxes).size !== level.boxes.length ||
     new Set(level.goals).size !== level.goals.length ||
-    level.boxes.some((cell) => !isInterior(cell)) ||
-    level.goals.some((cell) => !isInterior(cell)) ||
+    new Set(walls).size !== walls.size ||
+    [...walls].some((cell) => !isInterior(cell)) ||
+    level.boxes.some((cell) => !isInterior(cell) || walls.has(cell)) ||
+    level.goals.some((cell) => !isInterior(cell) || walls.has(cell)) ||
+    walls.has(level.player) ||
     level.boxes.includes(level.player)
   ) {
     return false;
@@ -70,13 +76,13 @@ export function isSokobanLevelSolvable(level: SokobanLevel): boolean {
 
     for (const delta of DIRECTIONS) {
       const nextPlayer = state.player + delta;
-      if (isWall(nextPlayer)) continue;
+      if (isWall(nextPlayer, walls)) continue;
 
       const boxIndex = state.boxes.indexOf(nextPlayer);
       let nextBoxes = state.boxes;
       if (boxIndex >= 0) {
         const beyond = nextPlayer + delta;
-        if (isWall(beyond) || state.boxes.includes(beyond)) continue;
+        if (isWall(beyond, walls) || state.boxes.includes(beyond)) continue;
         nextBoxes = [...state.boxes];
         nextBoxes[boxIndex] = beyond;
         nextBoxes = normalizeBoxes(nextBoxes);
@@ -90,6 +96,26 @@ export function isSokobanLevelSolvable(level: SokobanLevel): boolean {
   }
 
   return false;
+}
+
+function addInteriorWalls(level: SokobanLevel, random: () => number): SokobanLevel {
+  const occupied = new Set([level.player, ...level.boxes, ...level.goals]);
+  const candidates = Array.from({ length: INTERIOR_SIZE * INTERIOR_SIZE }, (_, index) => {
+    const row = Math.floor(index / INTERIOR_SIZE) + 1;
+    const column = index % INTERIOR_SIZE + 1;
+    return row * SOKOBAN_SIZE + column;
+  }).filter((cell) => !occupied.has(cell));
+  const walls: number[] = [];
+  for (let index = candidates.length - 1; index > 0; index -= 1) {
+    const target = Math.floor(random() * (index + 1));
+    [candidates[index], candidates[target]] = [candidates[target], candidates[index]];
+  }
+  for (const cell of candidates) {
+    if (walls.length >= 5) break;
+    const candidate = { ...level, walls: [...walls, cell] };
+    if (isSokobanLevelSolvable(candidate)) walls.push(cell);
+  }
+  return { ...level, walls };
 }
 
 export function createSokobanLevel(random = Math.random): SokobanLevel {
@@ -137,8 +163,11 @@ export function createSokobanLevel(random = Math.random): SokobanLevel {
     );
     if (!playerOptions.length) continue;
 
-    const level = { player: playerOptions[0], boxes, goals };
-    if (isSokobanLevelSolvable(level)) return level;
+    const level = { player: playerOptions[0], boxes, goals, walls: [] };
+    if (isSokobanLevelSolvable(level)) {
+      const decorated = addInteriorWalls(level, random);
+      if (decorated.walls.length >= 3 && isSokobanLevelSolvable(decorated)) return decorated;
+    }
   }
 
   if (!isSokobanLevelSolvable(SOKOBAN_FALLBACK_LEVEL)) {
@@ -148,5 +177,6 @@ export function createSokobanLevel(random = Math.random): SokobanLevel {
     player: SOKOBAN_FALLBACK_LEVEL.player,
     boxes: [...SOKOBAN_FALLBACK_LEVEL.boxes],
     goals: [...SOKOBAN_FALLBACK_LEVEL.goals],
+    walls: [...SOKOBAN_FALLBACK_LEVEL.walls],
   };
 }

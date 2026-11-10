@@ -306,9 +306,22 @@ test.describe("gameplay input checks", () => {
     expectNoRuntimeErrors(runtimeErrors);
   });
 
-  test("25 · Sokoban responds to a valid direction", async ({ page }) => {
+  test("25 · Sokoban renders interior walls and responds to a valid direction", async ({ page }) => {
     const { root, runtimeErrors } = await openGame(page, 24);
-    await root.locator(".retro-pad").getByRole("button", { name: "Move up" }).click();
+    await expect(root.locator(".sokoban-cell.wall").filter({ has: root.locator(".player") })).toHaveCount(0);
+    expect(await root.locator(".sokoban-cell.wall").count()).toBeGreaterThan(4);
+    const direction = await root.locator(".sokoban-board").evaluate((board) => {
+      const cells = Array.from(board.children) as HTMLElement[];
+      const player = cells.findIndex((cell) => cell.classList.contains("player"));
+      const options = [{ delta: -8, name: "Move up" }, { delta: 8, name: "Move down" }, { delta: -1, name: "Move left" }, { delta: 1, name: "Move right" }];
+      return options.find(({ delta }) => {
+        const next = player + delta;
+        return next >= 0 && next < 64 && !(delta === -1 && player % 8 === 0) && !(delta === 1 && player % 8 === 7) &&
+          !cells[next].classList.contains("wall") && !cells[next].classList.contains("box");
+      })?.name ?? null;
+    });
+    expect(direction).not.toBeNull();
+    await root.locator(".retro-pad").getByRole("button", { name: direction! }).click();
     await expect(root.locator(".game-score b")).toHaveText("1");
     expectNoRuntimeErrors(runtimeErrors);
   });
@@ -432,9 +445,22 @@ test.describe("mobile touch controls", () => {
     expectNoRuntimeErrors(runtimeErrors);
   });
 
-  test("mobile Sokoban control accepts a real touch event", async ({ page }) => {
+  test("mobile Sokoban touch control works with interior walls", async ({ page }) => {
     const { root, runtimeErrors } = await openGame(page, 24);
-    await root.locator(".retro-pad").getByRole("button", { name: "Move up" }).tap();
+    await expect(root.locator(".sokoban-cell.wall").filter({ has: root.locator(".player") })).toHaveCount(0);
+    expect(await root.locator(".sokoban-cell.wall").count()).toBeGreaterThan(4);
+    const direction = await root.locator(".sokoban-board").evaluate((board) => {
+      const cells = Array.from(board.children) as HTMLElement[];
+      const player = cells.findIndex((cell) => cell.classList.contains("player"));
+      const options = [{ delta: -8, name: "Move up" }, { delta: 8, name: "Move down" }, { delta: -1, name: "Move left" }, { delta: 1, name: "Move right" }];
+      return options.find(({ delta }) => {
+        const next = player + delta;
+        return next >= 0 && next < 64 && !(delta === -1 && player % 8 === 0) && !(delta === 1 && player % 8 === 7) &&
+          !cells[next].classList.contains("wall") && !cells[next].classList.contains("box");
+      })?.name ?? null;
+    });
+    expect(direction).not.toBeNull();
+    await root.locator(".retro-pad").getByRole("button", { name: direction! }).tap();
     await expect(root.locator(".game-score b")).toHaveText("1");
     expectNoRuntimeErrors(runtimeErrors);
   });
