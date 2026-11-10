@@ -34,7 +34,8 @@ describe("Sokoban level generation", () => {
       const level = createSokobanLevel(seededRandom(seed));
       expect(level.boxes).toHaveLength(3);
       expect(level.goals).toHaveLength(3);
-      expect(level.walls.length).toBeGreaterThanOrEqual(3);
+      expect(level.walls.length).toBeGreaterThanOrEqual(6);
+      expect(level.walls.length).toBeLessThanOrEqual(8);
       expect(new Set(level.walls).size).toBe(level.walls.length);
       expect(new Set(level.boxes).size).toBe(3);
       expect(new Set(level.goals).size).toBe(3);

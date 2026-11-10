@@ -106,12 +106,13 @@ function addInteriorWalls(level: SokobanLevel, random: () => number): SokobanLev
     return row * SOKOBAN_SIZE + column;
   }).filter((cell) => !occupied.has(cell));
   const walls: number[] = [];
+  const targetWallCount = 6 + Math.floor(random() * 3);
   for (let index = candidates.length - 1; index > 0; index -= 1) {
     const target = Math.floor(random() * (index + 1));
     [candidates[index], candidates[target]] = [candidates[target], candidates[index]];
   }
   for (const cell of candidates) {
-    if (walls.length >= 5) break;
+    if (walls.length >= targetWallCount) break;
     const candidate = { ...level, walls: [...walls, cell] };
     if (isSokobanLevelSolvable(candidate)) walls.push(cell);
   }
@@ -166,7 +167,7 @@ export function createSokobanLevel(random = Math.random): SokobanLevel {
     const level = { player: playerOptions[0], boxes, goals, walls: [] };
     if (isSokobanLevelSolvable(level)) {
       const decorated = addInteriorWalls(level, random);
-      if (decorated.walls.length >= 3 && isSokobanLevelSolvable(decorated)) return decorated;
+      if (decorated.walls.length >= 6 && isSokobanLevelSolvable(decorated)) return decorated;
     }
   }
 
