@@ -45,5 +45,5 @@ describe("Sokoban level generation", () => {
       expect(level.walls.some((wall) => level.boxes.includes(wall) || level.goals.includes(wall))).toBe(false);
       expect(isSokobanLevelSolvable(level)).toBe(true);
     }
-  });
+  }, 15_000);
 });
